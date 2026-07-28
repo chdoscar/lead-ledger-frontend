@@ -24,7 +24,7 @@ const STATUS_SWATCHES = ["#059669", "#2563EB", "#D97706", "#DC2626", "#7C3AED", 
 
 // ⚠️ Set this to your deployed backend's URL (from Render, step 4 of the
 // backend README) — e.g. "https://lead-ledger-backend-xxxx.onrender.com/api"
-const API_BASE = import.meta.env.VITE_API_BASE || "https://lead-ledger-backend.onrender.com/api";
+const API_BASE = "https://lead-ledger-backend.onrender.com/api";
 
 async function api(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -434,6 +434,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
                 <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
               </span>
               <span>{fmtNum(lead.netSalary)}</span>
+              {lead.salaryThrough && <span className="text-[9px] text-faint ml-0.5">({lead.salaryThrough})</span>}
               <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
               <span>{fmtNum(lead.loanAmount)}</span>
             </div>
@@ -448,7 +449,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
                 value={lead.statusId}
                 onChange={(e) => onStatusChange(lead.id, e.target.value)}
                 style={{ borderColor: status.color, color: contrastText(status.color), background: status.color }}
-                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer ${lead.statusId === "new" ? "status-glow-pulse" : ""}`}
+                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer max-w-[110px] truncate ${lead.statusId === "new" ? "status-glow-pulse" : ""}`}
               >
                 {!statuses.some((s) => s.id === lead.statusId) && (
                   <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
@@ -629,6 +630,13 @@ function EditLeadModal({ lead, onClose, onSave, role, onDeleteRequest }) {
             <Field label="Net salary"><input className={inputCls} value={form.netSalary} onChange={set("netSalary")} /></Field>
             <Field label="Loan amount"><input className={inputCls} value={form.loanAmount} onChange={set("loanAmount")} /></Field>
           </div>
+          <Field label="Salary through">
+            <select className={inputCls} value={form.salaryThrough || ""} onChange={set("salaryThrough")}>
+              <option value="">—</option>
+              <option value="Bank">Bank</option>
+              <option value="Cash">Cash</option>
+            </select>
+          </Field>
           <Field label="Remark">
             <textarea rows={3} className={inputCls} value={form.remark} onChange={set("remark")} />
           </Field>
@@ -660,7 +668,7 @@ function EditLeadModal({ lead, onClose, onSave, role, onDeleteRequest }) {
 /* ------------------------------------------------------------------ */
 function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
   const [fields, setFields] = useState({
-    loanType: "", phone: "", email: "", name: "", jobTitle: "", location: "", netSalary: "", loanAmount: "", remark: "",
+    loanType: "", phone: "", email: "", name: "", jobTitle: "", location: "", netSalary: "", loanAmount: "", salaryThrough: "", remark: "",
   });
   const [source, setSource] = useState("whatsapp"); // "website" -> New, "whatsapp" -> Contacted
 
@@ -724,6 +732,13 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
                 <Field label="Net salary"><input className={inputCls} value={fields.netSalary} onChange={set("netSalary")} /></Field>
                 <Field label="Loan amount"><input className={inputCls} value={fields.loanAmount} onChange={set("loanAmount")} /></Field>
               </div>
+              <Field label="Salary through">
+                <select className={inputCls} value={fields.salaryThrough || ""} onChange={set("salaryThrough")}>
+                  <option value="">—</option>
+                  <option value="Bank">Bank</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </Field>
               <Field label="Remark"><textarea rows={2} className={inputCls} value={fields.remark} onChange={set("remark")} /></Field>
             </>
           ) : (
@@ -740,6 +755,13 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
                 <Field label="Net salary"><input className={inputCls} value={fields.netSalary} onChange={set("netSalary")} /></Field>
                 <Field label="Loan amount"><input className={inputCls} value={fields.loanAmount} onChange={set("loanAmount")} /></Field>
               </div>
+              <Field label="Salary through">
+                <select className={inputCls} value={fields.salaryThrough || ""} onChange={set("salaryThrough")}>
+                  <option value="">—</option>
+                  <option value="Bank">Bank</option>
+                  <option value="Cash">Cash</option>
+                </select>
+              </Field>
             </>
           )}
         </div>
@@ -1341,9 +1363,16 @@ export default function App() {
   const [agents, setAgents] = useState(SEED_AGENTS);
   const [leads, setLeads] = useState([]);
   const [legacyNotes, setLegacyNotes] = useState([]);
-  const [role, setRole] = useState("admin");
-  const [currentAgentId, setCurrentAgentId] = useState("admin");
-  const [loggedIn, setLoggedIn] = useState(false);
+  const savedSession = (() => {
+    try {
+      return JSON.parse(localStorage.getItem("leadledger_session") || "null");
+    } catch {
+      return null;
+    }
+  })();
+  const [role, setRole] = useState(savedSession?.role || "admin");
+  const [currentAgentId, setCurrentAgentId] = useState(savedSession?.id || "admin");
+  const [loggedIn, setLoggedIn] = useState(!!savedSession);
   const [tab, setTab] = useState("leads");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
@@ -1358,30 +1387,39 @@ export default function App() {
   const notify = (msg) => setToast(msg);
 
   /* data loading — happens once logged in, from the real backend */
+  const [dataStatus, setDataStatus] = useState("idle"); // idle | loading | ready | error
+  const [dataError, setDataError] = useState("");
+
   useEffect(() => {
     setLoaded(true); // nothing to wait on before showing the login screen
   }, []);
 
+  const loadAllData = async () => {
+    setDataStatus("loading");
+    setDataError("");
+    try {
+      const [ws, sts, ags, lds, notes] = await Promise.all([
+        api("/websites"),
+        api("/statuses"),
+        api("/agents"),
+        api("/leads"),
+        api("/legacy-notes"),
+      ]);
+      setWebsites(ws.map(toCamel));
+      setStatuses(sts.map(toCamel));
+      setAgents(ags.map(toCamel));
+      setLeads(lds.map(toCamel));
+      setLegacyNotes(notes.map(toCamel));
+      setDataStatus("ready");
+    } catch (e) {
+      setDataStatus("error");
+      setDataError(e.message || "Couldn't reach the server");
+    }
+  };
+
   useEffect(() => {
     if (!loggedIn) return;
-    (async () => {
-      try {
-        const [ws, sts, ags, lds, notes] = await Promise.all([
-          api("/websites"),
-          api("/statuses"),
-          api("/agents"),
-          api("/leads"),
-          api("/legacy-notes"),
-        ]);
-        setWebsites(ws.map(toCamel));
-        setStatuses(sts.map(toCamel));
-        setAgents(ags.map(toCamel));
-        setLeads(lds.map(toCamel));
-        setLegacyNotes(notes.map(toCamel));
-      } catch (e) {
-        notify(`Couldn't load data: ${e.message}`);
-      }
-    })();
+    loadAllData();
   }, [loggedIn]);
 
   const isWebsiteVisible = (w) => {
@@ -1518,9 +1556,41 @@ export default function App() {
   if (!loggedIn) {
     return (
       <LoginScreen
-        agents={agents}
-        onLogin={(agent) => { setRole(agent.role); setCurrentAgentId(agent.id); setLoggedIn(true); }}
+        onLogin={(agent) => {
+          setRole(agent.role);
+          setCurrentAgentId(agent.id);
+          setLoggedIn(true);
+          localStorage.setItem("leadledger_session", JSON.stringify(agent));
+        }}
       />
+    );
+  }
+
+  if (dataStatus === "loading" || dataStatus === "idle") {
+    return (
+      <div className="min-h-screen bg-ink flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+        <Loader2 className="animate-spin text-brass" size={28} />
+        <p className="text-dim text-sm">Loading your data…</p>
+      </div>
+    );
+  }
+
+  if (dataStatus === "error") {
+    return (
+      <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+        <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-sm p-6 text-center">
+          <div className="w-12 h-12 rounded-full bg-rust/15 flex items-center justify-center mx-auto mb-3">
+            <X size={22} className="text-rust" />
+          </div>
+          <h2 className="text-cream font-semibold text-[16px] mb-1">Couldn't load your data</h2>
+          <p className="text-dim text-[13px] mb-1">This did <strong>not</strong> delete or change anything — your real data is still safe in the database. The app just couldn't reach the server this time.</p>
+          <p className="text-faint text-[11px] mb-4">{dataError}</p>
+          <button onClick={loadAllData} className="w-full px-4 py-2.5 text-sm font-semibold bg-brass text-ink rounded-lg hover:brightness-110 transition-all">
+            Try again
+          </button>
+          <p className="text-faint text-[10px] mt-3">If your backend has been idle a while, it can take 30–60 seconds to wake up — wait a moment and tap "Try again."</p>
+        </div>
+      </div>
     );
   }
 
@@ -1923,7 +1993,7 @@ export default function App() {
             currentAgentId={currentAgentId}
             setCurrentAgentId={setCurrentAgentId}
             notify={notify}
-            onLogout={() => { setLoggedIn(false); setTab("leads"); }}
+            onLogout={() => { localStorage.removeItem("leadledger_session"); setLoggedIn(false); setTab("leads"); }}
           />
         )}
       </main>
