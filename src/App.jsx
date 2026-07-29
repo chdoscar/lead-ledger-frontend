@@ -59,8 +59,14 @@ function toCamel(obj) {
   return out;
 }
 
+function nowInMalaysia() {
+  // Reads "wall clock" Malaysia time (UTC+8) regardless of what timezone
+  // the device itself is set to, so every agent's app agrees on what
+  // "today" is even if someone's phone is misconfigured.
+  return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
+}
 function todayKey() {
-  const d = new Date();
+  const d = nowInMalaysia();
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 function dateKeyToInputValue(k) {
@@ -74,7 +80,7 @@ function inputValueToDateKey(v) {
   return `${dd}/${mm}/${yyyy}`;
 }
 function nowTime() {
-  const d = new Date();
+  const d = nowInMalaysia();
   let h = d.getHours();
   const m = String(d.getMinutes()).padStart(2, "0");
   const ampm = h >= 12 ? "PM" : "AM";
@@ -86,9 +92,11 @@ function fmtTime(value) {
   if (!value) return "";
   // Leads created via the CloudMailin webhook carry a real ISO timestamp;
   // leads added by hand in this UI already carry a pre-formatted "H:MM AM/PM"
-  // string. Handle both so either source displays correctly.
-  const d = new Date(value);
-  if (isNaN(d.getTime())) return value;
+  // string. Handle both, and always display in Malaysia time regardless of
+  // the viewing device's own timezone setting.
+  const parsed = new Date(value);
+  if (isNaN(parsed.getTime())) return value;
+  const d = new Date(parsed.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
   let h = d.getHours();
   const m = String(d.getMinutes()).padStart(2, "0");
   const ampm = h >= 12 ? "PM" : "AM";
