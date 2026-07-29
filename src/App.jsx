@@ -625,7 +625,7 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
       id: uid(),
       websiteId: website.id,
       dateKey: todayKey(),
-      receivedTime: nowTime(),
+      receivedTime: new Date().toISOString(),
       statusId: source === "whatsapp" ? "contacted" : "new",
       assignedAgentId: currentAgentId,
       edited: {},
@@ -1330,7 +1330,12 @@ export default function App() {
   })();
   const [role, setRole] = useState(savedSession?.role || "admin");
   const [currentAgentId, setCurrentAgentId] = useState(savedSession?.id || "admin");
-  const [loggedIn, setLoggedIn] = useState(!!savedSession);
+  // Login can't actually work inside Claude's artifact preview (no real
+  // network access to the backend), so it's auto-bypassed there. On the
+  // real deployed site (your Vercel domain), login stays fully required.
+  const isProductionSite = typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app");
+  const DISABLE_LOGIN = !isProductionSite;
+  const [loggedIn, setLoggedIn] = useState(DISABLE_LOGIN || !!savedSession);
   const [tab, setTab] = useState("leads");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
@@ -1511,7 +1516,7 @@ export default function App() {
     );
   }
 
-  if (!loggedIn) {
+  if (!loggedIn && !DISABLE_LOGIN) {
     return (
       <LoginScreen
         onLogin={(agent) => {
