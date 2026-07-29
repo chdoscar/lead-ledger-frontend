@@ -163,60 +163,6 @@ function loanTypeSizeCls(text) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Seed data                                                          */
-/* ------------------------------------------------------------------ */
-const SEED_WEBSITES = [
-  { id: "db", name: "Debtfree.my", short: "Db", color: "#2563EB", active: true, ownerId: "admin", shared: true },
-  { id: "dp", name: "DapatPinjaman", short: "Dp", color: "#DC2626", active: true, ownerId: "admin", shared: true },
-];
-
-const SEED_STATUSES = [
-  { id: "new", name: "New", color: "#2563EB" },
-  { id: "contacted", name: "Contacted", color: "#D97706" },
-  { id: "followup", name: "Appointment", color: "#7C3AED" },
-  { id: "approved", name: "Approved", color: "#059669" },
-  { id: "rejected", name: "Rejected", color: "#DC2626" },
-];
-
-const SEED_AGENTS = [
-  { id: "admin", name: "CHD Oscar (Super Admin)", username: "Chd Oscar", password: "admin123", role: "admin", active: true },
-  { id: "a1", name: "Ali Hassan", username: "ali.h", password: "ali123", role: "agent", active: true },
-  { id: "a2", name: "Mei Ling", username: "mei.l", password: "mei123", role: "agent", active: true },
-];
-
-function seedLeads() {
-  const y = new Date();
-  y.setDate(y.getDate() - 1);
-  const yKey = `${String(y.getDate()).padStart(2, "0")}/${String(y.getMonth() + 1).padStart(2, "0")}/${y.getFullYear()}`;
-  return [
-    {
-      id: uid(), websiteId: "db", dateKey: todayKey(), receivedTime: "9:12 AM",
-      loanType: "Personal Loan", phone: "+60 12-345 6789", email: "razif.k@gmail.com",
-      name: "Razif Kamal", jobTitle: "Sales Executive", location: "Petaling Jaya", netSalary: "4200", loanAmount: "15000",
-      remark: "", statusId: "new", assignedAgentId: "admin", edited: {},
-    },
-    {
-      id: uid(), websiteId: "db", dateKey: todayKey(), receivedTime: "11:47 AM",
-      loanType: "Debt Consolidation", phone: "+60 17-889 2210", email: "siti.nrl@yahoo.com",
-      name: "Siti Nurul", jobTitle: "Admin Clerk", location: "Shah Alam", netSalary: "3100", loanAmount: "22000",
-      remark: "Called once, no answer.", statusId: "contacted", assignedAgentId: "a1", edited: { remark: true },
-    },
-    {
-      id: uid(), websiteId: "dp", dateKey: todayKey(), receivedTime: "2:03 PM",
-      loanType: "Business Loan", phone: "+60 13-771 0044", email: "wong.kf@outlook.com",
-      name: "Wong Kok Fai", jobTitle: "Business Owner", location: "Klang", netSalary: "6800", loanAmount: "50000",
-      remark: "", statusId: "followup", assignedAgentId: "a2", edited: {},
-    },
-    {
-      id: uid(), websiteId: "db", dateKey: yKey, receivedTime: "4:30 PM",
-      loanType: "Personal Loan", phone: "+60 19-002 5567", email: "farah.a@gmail.com",
-      name: "Farah Adnan", jobTitle: "Nurse", location: "Subang Jaya", netSalary: "3900", loanAmount: "12000",
-      remark: "Approved, waiting for documents.", statusId: "approved", assignedAgentId: "admin", edited: { remark: true },
-    },
-  ];
-}
-
-/* ------------------------------------------------------------------ */
 /*  Tiny lead-extraction heuristic (stand-in for real inbox parsing)   */
 /* ------------------------------------------------------------------ */
 function extractLeadFromText(raw) {
@@ -439,7 +385,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
               <span>{fmtNum(lead.loanAmount)}</span>
             </div>
             <div className="relative inline-flex shrink-0">
-              {lead.statusId === "new" && (
+              {status.animated && (
                 <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-10">
                   <span className="status-shimmer-bar" style={{ color: status.color }} />
                 </span>
@@ -449,7 +395,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
                 value={lead.statusId}
                 onChange={(e) => onStatusChange(lead.id, e.target.value)}
                 style={{ borderColor: status.color, color: contrastText(status.color), background: status.color }}
-                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer max-w-[110px] truncate ${lead.statusId === "new" ? "status-glow-pulse" : ""}`}
+                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer max-w-[110px] truncate ${status.animated ? "status-glow-pulse" : ""}`}
               >
                 {!statuses.some((s) => s.id === lead.statusId) && (
                   <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
@@ -1261,6 +1207,18 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
                 value={s.name}
                 onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, name: e.target.value } : x))}
               />
+              <button
+                onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
+                title={s.animated ? "Animation on" : "Animation off"}
+                className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200"
+                style={{ background: s.animated ? "#34C759" : "#D1D5DB", width: 36, height: 22 }}
+              >
+                <span
+                  className="absolute top-0.5 left-0.5 rounded-full bg-white shadow transition-transform duration-200"
+                  style={{ width: 18, height: 18, transform: s.animated ? "translateX(14px)" : "translateX(0)" }}
+                />
+              </button>
+              <Sparkles size={13} className={s.animated ? "text-brass" : "text-faint"} />
               <button onClick={() => setDStatuses(dStatuses.filter((x) => x.id !== s.id))} className="text-faint hover-rust shrink-0">
                 <Trash2 size={14} />
               </button>
@@ -1270,7 +1228,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
             disabled={!newStatus.name}
             onAdd={() => {
               if (!newStatus.name) return;
-              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length] }]);
+              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false }]);
               setNewStatus({ name: "" });
             }}
           >
@@ -1358,9 +1316,9 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
 /* ------------------------------------------------------------------ */
 export default function App() {
   const [loaded, setLoaded] = useState(false);
-  const [websites, setWebsites] = useState(SEED_WEBSITES);
-  const [statuses, setStatuses] = useState(SEED_STATUSES);
-  const [agents, setAgents] = useState(SEED_AGENTS);
+  const [websites, setWebsites] = useState([]);
+  const [statuses, setStatuses] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [leads, setLeads] = useState([]);
   const [legacyNotes, setLegacyNotes] = useState([]);
   const savedSession = (() => {
