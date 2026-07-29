@@ -612,7 +612,7 @@ function EditLeadModal({ lead, onClose, onSave, role, onDeleteRequest }) {
 /* ------------------------------------------------------------------ */
 /*  Add-lead modal (paste-and-extract, stand-in for inbox auto-read)   */
 /* ------------------------------------------------------------------ */
-function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
+function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
   const [fields, setFields] = useState({
     loanType: "", phone: "", email: "", name: "", jobTitle: "", location: "", netSalary: "", loanAmount: "", salaryThrough: "", remark: "",
   });
@@ -621,12 +621,15 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
   const set = (k) => (e) => setFields((f) => ({ ...f, [k]: e.target.value }));
 
   const confirmAdd = () => {
+    const defaultStatusId = source === "whatsapp"
+      ? (statuses[1]?.id || statuses[0]?.id)
+      : (statuses[0]?.id);
     onAdd({
       id: uid(),
       websiteId: website.id,
       dateKey: todayKey(),
       receivedTime: new Date().toISOString(),
-      statusId: source === "whatsapp" ? "contacted" : "new",
+      statusId: defaultStatusId,
       assignedAgentId: currentAgentId,
       edited: {},
       ...fields,
@@ -664,7 +667,7 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId }) {
             ))}
           </div>
           <span className="text-[10px] text-faint ml-auto">
-            → status: <strong className="text-brass">{source === "whatsapp" ? "Contacted" : "New"}</strong>
+            → status: <strong className="text-brass">{(source === "whatsapp" ? (statuses[1] || statuses[0]) : statuses[0])?.name || "—"}</strong>
           </span>
         </div>
 
@@ -1926,7 +1929,7 @@ export default function App() {
                             onEdit={setEditingLead}
                             notify={notify}
                             onStatusChange={(id, statusId) => patchLead(id, { statusId })}
-                            onAssign={(id, assignedAgentId) => patchLead(id, { assignedAgentId, statusId: "new" })}
+                            onAssign={(id, assignedAgentId) => patchLead(id, { assignedAgentId, statusId: statuses[0]?.id })}
                             onRemarkChange={(id, remark) => patchLead(id, { remark, edited: { ...leads.find((x) => x.id === id)?.edited, remark: true } })}
                             onDeleteRequest={setDeletingLead}
                           />
@@ -1970,7 +1973,7 @@ export default function App() {
           onDeleteRequest={(l) => { setEditingLead(null); setDeletingLead(l); }}
         />
       )}
-      {addingWebsite && <AddLeadModal website={addingWebsite} onClose={() => setAddingWebsite(null)} onAdd={addLead} currentAgentId={currentAgentId} />}
+      {addingWebsite && <AddLeadModal website={addingWebsite} onClose={() => setAddingWebsite(null)} onAdd={addLead} currentAgentId={currentAgentId} statuses={statuses} />}
       {deletingLead && <ConfirmDeleteModal lead={deletingLead} onClose={() => setDeletingLead(null)} onConfirm={deleteLead} />}
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
     </div>
