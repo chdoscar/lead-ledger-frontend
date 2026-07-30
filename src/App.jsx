@@ -438,7 +438,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
                 onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
                 className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer max-w-[140px] truncate"
               >
-                <option value="">Reason — none set</option>
+                <option value="">Others</option>
                 {status.subOptions.map((opt) => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
@@ -1279,17 +1279,22 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
               {expandedStatusId === s.id && (
                 <div className="px-3.5 pb-3 pl-11">
                   <p className="text-[10px] text-faint mb-2">Optional reasons agents can pick when they set a lead to "{s.name}". Leave empty for no sub-options.</p>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
+                  <div className="flex flex-col gap-1.5 mb-2">
                     {(s.subOptions || []).map((opt, oi) => (
-                      <span key={oi} className="flex items-center gap-1 text-[11px] bg-ink border border-hairline rounded-full pl-2.5 pr-1.5 py-1 text-cream">
-                        {opt}
+                      <div key={oi} className="flex items-center gap-2 bg-ink border border-hairline rounded-lg px-2.5 py-1.5">
+                        <ReorderBtns
+                          list={s.subOptions}
+                          setList={(reordered) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, subOptions: reordered } : x))}
+                          index={oi}
+                        />
+                        <span className="text-[12px] text-cream flex-1 min-w-0">{opt}</span>
                         <button
                           onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, subOptions: x.subOptions.filter((_, j) => j !== oi) } : x))}
-                          className="text-faint hover-rust"
+                          className="text-faint hover-rust shrink-0"
                         >
-                          <X size={11} />
+                          <X size={12} />
                         </button>
-                      </span>
+                      </div>
                     ))}
                     {!(s.subOptions || []).length && <span className="text-[11px] text-faint italic">No sub-options set</span>}
                   </div>
