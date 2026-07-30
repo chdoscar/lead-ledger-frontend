@@ -289,7 +289,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
   };
 
   return (
-    <div className="relative bg-ink2 border border-hairline rounded-2xl px-4 py-3.5 shadow-sm hover:shadow-md hover-border-hairline transition-all">
+    <div className="relative bg-ink2 border border-hairline rounded-2xl px-4 py-3.5 shadow-sm hover:shadow-md hover-border-hairline transition-all overflow-hidden">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
 
@@ -396,7 +396,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
           </div>
 
           {/* Row 3b — net salary → loan amount — status */}
-          <div className="flex items-center justify-between gap-2 mt-0.5">
+          <div className="flex items-center justify-between gap-2 mt-0.5 flex-wrap">
             <div className="flex items-center gap-1.5 text-[17px] font-bold text-cream">
               <span className="w-4 shrink-0 -ml-1.5" />
               <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#EDE4FE" }}>
@@ -417,8 +417,8 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
               <select
                 value={lead.statusId}
                 onChange={(e) => onStatusChange(lead.id, e.target.value)}
-                style={{ borderColor: status.color, color: contrastText(status.color), background: status.color }}
-                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer max-w-[110px] truncate ${status.animated ? "status-glow-pulse" : ""}`}
+                style={{ borderColor: status.color, color: contrastText(status.color), background: status.color, width: 100, maxWidth: 100 }}
+                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
               >
                 {!statuses.some((s) => s.id === lead.statusId) && (
                   <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
@@ -436,7 +436,8 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
               <select
                 value={lead.subStatus || ""}
                 onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
-                className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer max-w-[140px] truncate"
+                style={{ width: 140, maxWidth: 140 }}
+                className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer truncate"
               >
                 <option value="">Others</option>
                 {status.subOptions.map((opt) => (
