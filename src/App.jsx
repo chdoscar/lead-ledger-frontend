@@ -46,6 +46,10 @@ import { createClient } from "@supabase/supabase-js";
 // service_role key (that one stays backend-only). Real data access is
 // still controlled by your backend API; this connection is only used to
 // listen for live changes on the leads table.
+console.log(
+  "[Realtime] Supabase URL set:", !!import.meta.env.VITE_SUPABASE_URL,
+  "| anon key set:", !!import.meta.env.VITE_SUPABASE_ANON_KEY
+);
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -1425,7 +1429,14 @@ export default function App() {
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "leads" }, (payload) => {
         setLeads((prev) => prev.filter((l) => l.id !== payload.old.id));
       })
-      .subscribe();
+      .subscribe((status, err) => {
+        // Temporary debug logging — check the browser console for this.
+        // SUBSCRIBED = working correctly.
+        // CHANNEL_ERROR = usually means Realtime isn't enabled on the table,
+        //   or the anon key / URL is wrong.
+        // TIMED_OUT / CLOSED = a network or connection issue.
+        console.log("[Realtime] status:", status, err || "");
+      });
 
     return () => {
       supabase.removeChannel(channel);
