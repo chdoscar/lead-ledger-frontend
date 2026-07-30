@@ -40,6 +40,17 @@ async function api(path, options = {}) {
   return res.json();
 }
 
+import { createClient } from "@supabase/supabase-js";
+
+// Safe to expose in the browser — this is the public "anon" key, not the
+// service_role key (that one stays backend-only). Real data access is
+// still controlled by your backend API; this connection is only used to
+// listen for live changes on the leads table.
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY
+);
+
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 function toSnake(obj) {
@@ -1395,6 +1406,31 @@ export default function App() {
     if (!loggedIn) return;
     loadAllData();
   }, [loggedIn]);
+
+  // Instantly reflects new/updated/deleted leads the moment they happen in
+  // the database — whether from an email coming in, another agent's edit,
+  // or your own action on a different device. Uses Supabase's built-in
+  // Realtime (a live websocket connection), not polling.
+  useEffect(() => {
+    if (!loggedIn || dataStatus !== "ready") return;
+
+    const channel = supabase
+      .channel("leads-realtime")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "leads" }, (payload) => {
+        setLeads((prev) => (prev.some((l) => l.id === payload.new.id) ? prev : [toCamel(payload.new), ...prev]));
+      })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads" }, (payload) => {
+        setLeads((prev) => prev.map((l) => (l.id === payload.new.id ? toCamel(payload.new) : l)));
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "leads" }, (payload) => {
+        setLeads((prev) => prev.filter((l) => l.id !== payload.old.id));
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [loggedIn, dataStatus]);
 
   const isWebsiteVisible = (w) => {
     if (!w.ownerId || w.ownerId === "admin") return true;
