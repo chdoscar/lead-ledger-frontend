@@ -931,6 +931,97 @@ function AgentPasswordField({ agent, onSet }) {
   );
 }
 
+function moveItem(list, setList, index, dir) {
+  const target = index + dir;
+  if (target < 0 || target >= list.length) return;
+  const copy = [...list];
+  [copy[index], copy[target]] = [copy[target], copy[index]];
+  setList(copy);
+}
+
+function SaveBtn({ dirty, onSave }) {
+  return (
+    <div className="flex justify-end mt-3">
+      <button
+        onClick={onSave}
+        disabled={!dirty}
+        className="px-4 py-2 text-sm font-semibold bg-sage text-ink rounded-lg shadow-sm hover:brightness-110 flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:brightness-100"
+      >
+        <Check size={14} /> {dirty ? "Save changes" : "Saved"}
+      </button>
+    </div>
+  );
+}
+
+function ReorderBtns({ list, setList, index }) {
+  return (
+    <div className="flex flex-col shrink-0 -space-y-1">
+      <button
+        onClick={() => moveItem(list, setList, index, -1)}
+        disabled={index === 0}
+        className="text-faint hover-cream disabled:opacity-20 disabled:cursor-not-allowed"
+      >
+        <ChevronUp size={13} />
+      </button>
+      <button
+        onClick={() => moveItem(list, setList, index, 1)}
+        disabled={index === list.length - 1}
+        className="text-faint hover-cream disabled:opacity-20 disabled:cursor-not-allowed"
+      >
+        <ChevronDown size={13} />
+      </button>
+    </div>
+  );
+}
+
+function ColorSwatch({ color, onChange, size = 8 }) {
+  return (
+    <label
+      className="relative rounded-full cursor-pointer shrink-0 block"
+      style={{ width: size * 4, height: size * 4, boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 3.5px ${color}` }}
+      title="Choose color"
+    >
+      <span className="absolute inset-0 rounded-full" style={{ background: color }} />
+      <input
+        type="color"
+        value={/^#[0-9A-Fa-f]{6}$/.test(color) ? color : "#888888"}
+        onChange={onChange}
+        className="absolute -top-1 -left-1 cursor-pointer border-0 p-0 opacity-0"
+        style={{ width: size * 4 + 8, height: size * 4 + 8 }}
+      />
+    </label>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, desc }) {
+  return (
+    <div className="flex items-start gap-3 mb-3">
+      <span className="w-8 h-8 rounded-xl bg-brass-15 flex items-center justify-center shrink-0 mt-0.5">
+        <Icon size={15} className="text-brass" />
+      </span>
+      <div>
+        <h3 className="text-cream font-semibold text-[14px] leading-tight">{title}</h3>
+        {desc && <p className="text-[11px] text-faint mt-0.5 leading-snug">{desc}</p>}
+      </div>
+    </div>
+  );
+}
+
+function AddRow({ children, onAdd, disabled }) {
+  return (
+    <div className="flex items-center gap-2 px-3.5 py-3 border-t border-dashed border-hairline">
+      {children}
+      <button
+        onClick={onAdd}
+        disabled={disabled}
+        className="shrink-0 w-8 h-8 flex items-center justify-center bg-brass text-ink rounded-full disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 transition-all"
+      >
+        <Plus size={15} strokeWidth={2.5} />
+      </button>
+    </div>
+  );
+}
+
 function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, setAgents, role, setRole, currentAgentId, setCurrentAgentId, notify, onLogout }) {
   const isAdmin = role === "admin";
   const [newWebsite, setNewWebsite] = useState({ name: "" });
@@ -978,86 +1069,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
     }
   };
 
-  const SaveBtn = ({ dirty, onSave }) => (
-    <div className="flex justify-end mt-3">
-      <button
-        onClick={onSave}
-        disabled={!dirty}
-        className="px-4 py-2 text-sm font-semibold bg-sage text-ink rounded-lg shadow-sm hover:brightness-110 flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:brightness-100"
-      >
-        <Check size={14} /> {dirty ? "Save changes" : "Saved"}
-      </button>
-    </div>
-  );
-
-  const moveItem = (list, setList, index, dir) => {
-    const target = index + dir;
-    if (target < 0 || target >= list.length) return;
-    const copy = [...list];
-    [copy[index], copy[target]] = [copy[target], copy[index]];
-    setList(copy);
-  };
-
-  const ReorderBtns = ({ list, setList, index }) => (
-    <div className="flex flex-col shrink-0 -space-y-1">
-      <button
-        onClick={() => moveItem(list, setList, index, -1)}
-        disabled={index === 0}
-        className="text-faint hover-cream disabled:opacity-20 disabled:cursor-not-allowed"
-      >
-        <ChevronUp size={13} />
-      </button>
-      <button
-        onClick={() => moveItem(list, setList, index, 1)}
-        disabled={index === list.length - 1}
-        className="text-faint hover-cream disabled:opacity-20 disabled:cursor-not-allowed"
-      >
-        <ChevronDown size={13} />
-      </button>
-    </div>
-  );
-
-  const ColorSwatch = ({ color, onChange, size = 8 }) => (
-    <label
-      className="relative rounded-full cursor-pointer shrink-0 block"
-      style={{ width: size * 4, height: size * 4, boxShadow: `0 0 0 2px #FFFFFF, 0 0 0 3.5px ${color}` }}
-      title="Choose color"
-    >
-      <span className="absolute inset-0 rounded-full" style={{ background: color }} />
-      <input
-        type="color"
-        value={/^#[0-9A-Fa-f]{6}$/.test(color) ? color : "#888888"}
-        onChange={onChange}
-        className="absolute -top-1 -left-1 cursor-pointer border-0 p-0 opacity-0"
-        style={{ width: size * 4 + 8, height: size * 4 + 8 }}
-      />
-    </label>
-  );
-
-  const SectionHeader = ({ icon: Icon, title, desc }) => (
-    <div className="flex items-start gap-3 mb-3">
-      <span className="w-8 h-8 rounded-xl bg-brass-15 flex items-center justify-center shrink-0 mt-0.5">
-        <Icon size={15} className="text-brass" />
-      </span>
-      <div>
-        <h3 className="text-cream font-semibold text-[14px] leading-tight">{title}</h3>
-        {desc && <p className="text-[11px] text-faint mt-0.5 leading-snug">{desc}</p>}
-      </div>
-    </div>
-  );
-
-  const AddRow = ({ children, onAdd, disabled }) => (
-    <div className="flex items-center gap-2 px-3.5 py-3 border-t border-dashed border-hairline">
-      {children}
-      <button
-        onClick={onAdd}
-        disabled={disabled}
-        className="shrink-0 w-8 h-8 flex items-center justify-center bg-brass text-ink rounded-full disabled:opacity-30 disabled:cursor-not-allowed hover:brightness-110 transition-all"
-      >
-        <Plus size={15} strokeWidth={2.5} />
-      </button>
-    </div>
-  );
+  const inputRowCls = "flex-1 min-w-0 bg-ink border border-hairline rounded-lg px-2.5 py-1.5 text-[13px] text-cream placeholder-faint focus:outline-none focus-border-brass";
 
   const RoleToggle = (
     <div className="bg-ink2 border border-hairline rounded-xl px-4 py-3 mb-6 shadow-sm space-y-2.5">
@@ -1095,8 +1107,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
       )}
     </div>
   );
-
-  const inputRowCls = "flex-1 min-w-0 bg-ink border border-hairline rounded-lg px-2.5 py-1.5 text-[13px] text-cream placeholder-faint focus:outline-none focus-border-brass";
 
   const currentUser = agents.find((a) => a.id === currentAgentId);
   const LogoutButton = (
