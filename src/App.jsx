@@ -289,7 +289,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
   };
 
   return (
-    <div className="relative bg-ink2 border-2 border-hairline rounded-xl px-4 py-3 hover-border-hairline transition-colors">
+    <div className="relative bg-ink2 border border-hairline rounded-2xl px-4 py-3.5 shadow-sm hover:shadow-md hover-border-hairline transition-all">
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
 
@@ -599,7 +599,7 @@ function EditLeadModal({ lead, onClose, onSave, role, onDeleteRequest }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-ink2 border border-hairline rounded-2xl w-full max-w-md max-h-[86vh] overflow-y-auto p-5"
+        className="bg-ink2 border border-hairline rounded-2xl shadow-xl w-full max-w-md max-h-[86vh] overflow-y-auto p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
@@ -687,7 +687,7 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-ink2 border border-hairline rounded-2xl w-full max-w-md max-h-[86vh] overflow-y-auto p-5"
+        className="bg-ink2 border border-hairline rounded-2xl shadow-xl w-full max-w-md max-h-[86vh] overflow-y-auto p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
@@ -1716,43 +1716,46 @@ export default function App() {
         /* Semantic color classes — written as plain CSS instead of Tailwind
            arbitrary-value utilities, since this renderer doesn't compile
            bg-[#hex] / text-[#hex] on the fly. Bold, saturated accent theme. */
-        .bg-ink { background-color: #F1F1FB; }
+        .bg-ink { background-color: #F3F1FC; }
         .bg-ink2 { background-color: #FFFFFF; }
-        .bg-ink3 { background-color: #F5F4FE; }
-        .bg-ink-95 { background-color: rgba(241,241,251,0.95); }
-        .bg-hairline2 { background-color: #B8B3ED; }
+        .bg-ink3 { background-color: #F7F6FE; }
+        .bg-ink-95 { background-color: rgba(243,241,252,0.95); }
+        .bg-hairline2 { background-color: #D8D4F3; }
         .bg-brass { background-color: #4F46E5; }
         .bg-brass-15 { background-color: rgba(79,70,229,0.14); }
         .bg-sage { background-color: #059669; }
         .bg-rust { background-color: #DC2626; }
 
-        .text-cream { color: #000000; }
-        .text-dim { color: #000000; }
-        .text-faint { color: #000000; }
+        /* Real tonal hierarchy instead of everything mapping to pure black —
+           this is what makes a busy list of cards feel calm and scannable
+           rather than shouty. */
+        .text-cream { color: #221E36; }
+        .text-dim { color: #5F5B80; }
+        .text-faint { color: #9692B8; }
         .text-brass { color: #4F46E5; }
         .text-ink { color: #FFFFFF; }
-        .text-tan { color: #000000; }
+        .text-tan { color: #6B6690; }
         .text-sage { color: #059669; }
         .text-rust { color: #DC2626; }
         .text-amber { color: #D97706; }
-        .text-slate { color: #000000; }
-        .text-haze { color: #000000; }
+        .text-slate { color: #5F5B80; }
+        .text-haze { color: #7A76A0; }
         .text-sky { color: #2563EB; }
         .text-leaf { color: #16A34A; }
 
-        .border-hairline { border-color: #A5A0E8; }
-        .border-hairline2 { border-color: #B8B3ED; }
+        .border-hairline { border-color: #E4E1F6; }
+        .border-hairline2 { border-color: #D8D4F3; }
         .border-brass { border-color: #4F46E5; }
         .border-brass-30 { border-color: rgba(79,70,229,0.3); }
         .border-sage { border-color: #059669; }
-        .border-faint { border-color: #C3BFEE; }
+        .border-faint { border-color: #E9E7F8; }
 
-        .placeholder-faint::placeholder { color: #9A96C9; }
+        .placeholder-faint::placeholder { color: #ACA8CC; }
         .decoration-brass { text-decoration-color: #4F46E5; }
 
-        .hover-cream:hover { color: #000000; }
+        .hover-cream:hover { color: #221E36; }
         .hover-rust:hover { color: #DC2626; }
-        .hover-border-hairline:hover { border-color: #B3AEEA; }
+        .hover-border-hairline:hover { border-color: #C4BFEE; }
         .hover-bg-amber-15:hover { background-color: rgba(217,119,6,0.15); }
         .hover-bg-rust-15:hover { background-color: rgba(220,38,38,0.15); }
         .hover-bg-sky-15:hover { background-color: rgba(37,99,235,0.15); }
@@ -1976,7 +1979,7 @@ export default function App() {
                     <button
                       key={s.id}
                       onClick={() => setStatusFilter(active ? null : s.id)}
-                      className="relative h-12 rounded-lg flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
+                      className="relative h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
                       style={{
                         backgroundImage: `linear-gradient(165deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(${s.color}, ${s.color})`,
                         boxShadow: active
@@ -2057,7 +2060,7 @@ export default function App() {
                           </button>
                         )}
                       </div>
-                      <div className="space-y-2.5">
+                      <div className="space-y-3">
                         {wLeads.map((l, i) => (
                           <LeadCard
                             key={l.id}
