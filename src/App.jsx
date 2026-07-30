@@ -328,13 +328,17 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
 
           {/* Row 2 — loan type / time — agent assign */}
           <div className="flex items-start justify-between gap-2 mt-1">
-            <div className={`flex items-start gap-1.5 font-semibold ${loanTypeSizeCls(lead.loanType)} text-cream min-w-0 flex-1 break-words ${editedCls("loanType")}`}>
+            <div className={`flex items-start gap-1.5 font-semibold text-[12.5px] min-w-0 flex-1 break-words ${editedCls("loanType")}`} style={{ fontFamily: "'Times New Roman', Times, serif", color: "#000000" }}>
               <span className="w-4 shrink-0 -ml-1.5" />
               <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
                 <FileText size={11} className="text-amber" strokeWidth={2.6} />
               </span>
               <span>
-                {lead.loanType || <span className="text-faint italic font-normal">WhatsApp Lead</span>}
+                {lead.loanType || (
+                  <span className="text-faint italic font-normal">
+                    {lead.source === "whatsapp" ? "Whatsapp" : lead.source === "email" ? "Email" : "Website"}
+                  </span>
+                )}
                 <span className="ml-2 font-mono text-[12px] font-normal text-dim whitespace-nowrap">{fmtTime(lead.receivedTime)}</span>
               </span>
             </div>
@@ -387,7 +391,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
           )}
 
           {/* Row 3 — job title · location */}
-          <div className={`flex items-start gap-1.5 text-[12.5px] text-dim mt-0.5 break-words ${editedCls("meta")}`}>
+          <div className={`flex items-start gap-1.5 text-[12.5px] mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Times New Roman', Times, serif", color: "#000000" }}>
             <span className="w-4 shrink-0 -ml-1.5" />
             <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
               <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
@@ -680,6 +684,7 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
       receivedTime: new Date().toISOString(),
       statusId: defaultStatus?.id,
       assignedAgentId: currentAgentId,
+      source,
       edited: {},
       ...fields,
       netSalary: fields.netSalary.trim() ? fields.netSalary.trim() : null,
