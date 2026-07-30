@@ -268,7 +268,7 @@ function Toast({ text, onDone }) {
 /* ------------------------------------------------------------------ */
 /*  Lead Card                                                          */
 /* ------------------------------------------------------------------ */
-function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStatusChange, onAssign, onRemarkChange, onDeleteRequest, notify }) {
+function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStatusChange, onSubStatusChange, onAssign, onRemarkChange, onDeleteRequest, notify }) {
   const status = statuses.find((s) => s.id === lead.statusId) || { id: lead.statusId, name: "Unknown", color: "#9CA3AF" };
   const agent = agents.find((a) => a.id === lead.assignedAgentId);
   const editedCls = (f) => (lead.edited?.[f] ? "underline decoration-dotted decoration-brass underline-offset-4" : "");
@@ -430,6 +430,21 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
               <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: status.color }} strokeWidth={2.5} />
             </div>
           </div>
+
+          {status.subOptions && status.subOptions.length > 0 && (
+            <div className="flex justify-end mt-1">
+              <select
+                value={lead.subStatus || ""}
+                onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
+                className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer max-w-[140px] truncate"
+              >
+                <option value="">Reason — none set</option>
+                {status.subOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Row 4 — remark, full width */}
           <div className="mt-1.5">
@@ -911,6 +926,8 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
   const [newWebsite, setNewWebsite] = useState({ name: "" });
   const [newStatus, setNewStatus] = useState({ name: "" });
   const [newAgent, setNewAgent] = useState({ name: "", username: "", password: "" });
+  const [expandedStatusId, setExpandedStatusId] = useState(null);
+  const [newSubOption, setNewSubOption] = useState("");
 
   // Draft copies — edits only touch these. Nothing is applied for real
   // (or persisted) until the matching Save button is pressed.
@@ -1225,36 +1242,90 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
         <SectionHeader icon={Tag} title="Status droplist" desc="Shown on every lead card and the dashboard tiles, in this order." />
         <div className="bg-ink2 border border-hairline rounded-2xl shadow-sm overflow-hidden">
           {dStatuses.map((s, si) => (
-            <div key={s.id} className={`flex items-center gap-3 px-3.5 py-3 ${si > 0 ? "border-t border-hairline" : ""}`}>
-              <ReorderBtns list={dStatuses} setList={setDStatuses} index={si} />
-              <ColorSwatch color={s.color} onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, color: e.target.value } : x))} />
-              <input
-                className="bg-transparent text-[13px] font-medium text-cream flex-1 min-w-0 focus:outline-none"
-                value={s.name}
-                onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, name: e.target.value } : x))}
-              />
-              <button
-                onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
-                title={s.animated ? "Animation on" : "Animation off"}
-                className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200"
-                style={{ background: s.animated ? "#34C759" : "#D1D5DB", width: 36, height: 22 }}
-              >
-                <span
-                  className="absolute top-0.5 left-0.5 rounded-full bg-white shadow transition-transform duration-200"
-                  style={{ width: 18, height: 18, transform: s.animated ? "translateX(14px)" : "translateX(0)" }}
+            <div key={s.id} className={si > 0 ? "border-t border-hairline" : ""}>
+              <div className="flex items-center gap-3 px-3.5 py-3">
+                <ReorderBtns list={dStatuses} setList={setDStatuses} index={si} />
+                <ColorSwatch color={s.color} onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, color: e.target.value } : x))} />
+                <input
+                  className="bg-transparent text-[13px] font-medium text-cream flex-1 min-w-0 focus:outline-none"
+                  value={s.name}
+                  onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, name: e.target.value } : x))}
                 />
-              </button>
-              <Sparkles size={13} className={s.animated ? "text-brass" : "text-faint"} />
-              <button onClick={() => setDStatuses(dStatuses.filter((x) => x.id !== s.id))} className="text-faint hover-rust shrink-0">
-                <Trash2 size={14} />
-              </button>
+                <button
+                  onClick={() => { setExpandedStatusId(expandedStatusId === s.id ? null : s.id); setNewSubOption(""); }}
+                  title="Reason sub-options"
+                  className={`flex items-center gap-0.5 text-[10px] px-1.5 py-1 rounded-md shrink-0 ${(s.subOptions || []).length ? "text-brass" : "text-faint"}`}
+                >
+                  <Tag size={12} />
+                  {(s.subOptions || []).length > 0 && <span>{s.subOptions.length}</span>}
+                  {expandedStatusId === s.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+                <button
+                  onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
+                  title={s.animated ? "Animation on" : "Animation off"}
+                  className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200"
+                  style={{ background: s.animated ? "#34C759" : "#D1D5DB", width: 36, height: 22 }}
+                >
+                  <span
+                    className="absolute top-0.5 left-0.5 rounded-full bg-white shadow transition-transform duration-200"
+                    style={{ width: 18, height: 18, transform: s.animated ? "translateX(14px)" : "translateX(0)" }}
+                  />
+                </button>
+                <Sparkles size={13} className={s.animated ? "text-brass" : "text-faint"} />
+                <button onClick={() => setDStatuses(dStatuses.filter((x) => x.id !== s.id))} className="text-faint hover-rust shrink-0">
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {expandedStatusId === s.id && (
+                <div className="px-3.5 pb-3 pl-11">
+                  <p className="text-[10px] text-faint mb-2">Optional reasons agents can pick when they set a lead to "{s.name}". Leave empty for no sub-options.</p>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {(s.subOptions || []).map((opt, oi) => (
+                      <span key={oi} className="flex items-center gap-1 text-[11px] bg-ink border border-hairline rounded-full pl-2.5 pr-1.5 py-1 text-cream">
+                        {opt}
+                        <button
+                          onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, subOptions: x.subOptions.filter((_, j) => j !== oi) } : x))}
+                          className="text-faint hover-rust"
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                    {!(s.subOptions || []).length && <span className="text-[11px] text-faint italic">No sub-options set</span>}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      value={expandedStatusId === s.id ? newSubOption : ""}
+                      onChange={(e) => setNewSubOption(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newSubOption.trim()) {
+                          setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, subOptions: [...(x.subOptions || []), newSubOption.trim()] } : x));
+                          setNewSubOption("");
+                        }
+                      }}
+                      placeholder="e.g. Bad Credit"
+                      className="flex-1 bg-ink border border-hairline rounded-lg px-3 py-1.5 text-[12px] text-cream focus:outline-none focus-border-brass"
+                    />
+                    <button
+                      disabled={!newSubOption.trim()}
+                      onClick={() => {
+                        setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, subOptions: [...(x.subOptions || []), newSubOption.trim()] } : x));
+                        setNewSubOption("");
+                      }}
+                      className="px-3 py-1.5 text-[12px] font-medium bg-brass-15 text-brass rounded-lg disabled:opacity-40"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
           <AddRow
             disabled={!newStatus.name}
             onAdd={() => {
               if (!newStatus.name) return;
-              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false }]);
+              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false, subOptions: [] }]);
               setNewStatus({ name: "" });
             }}
           >
@@ -1983,7 +2054,8 @@ export default function App() {
                             role={role}
                             onEdit={setEditingLead}
                             notify={notify}
-                            onStatusChange={(id, statusId) => patchLead(id, { statusId })}
+                            onStatusChange={(id, statusId) => patchLead(id, { statusId, subStatus: null })}
+                            onSubStatusChange={(id, subStatus) => patchLead(id, { subStatus: subStatus || null })}
                             onAssign={(id, assignedAgentId) => patchLead(id, { assignedAgentId, statusId: statuses[0]?.id })}
                             onRemarkChange={(id, remark) => patchLead(id, { remark, edited: { ...leads.find((x) => x.id === id)?.edited, remark: true } })}
                             onDeleteRequest={setDeletingLead}
