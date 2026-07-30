@@ -588,7 +588,12 @@ function EditLeadModal({ lead, onClose, onSave, role, onDeleteRequest }) {
     if (form.jobTitle !== lead.jobTitle || form.location !== lead.location || form.netSalary !== lead.netSalary || form.loanAmount !== lead.loanAmount) {
       edited.meta = true;
     }
-    onSave({ ...form, edited });
+    onSave({
+      ...form,
+      edited,
+      netSalary: String(form.netSalary || "").trim() ? String(form.netSalary).trim() : null,
+      loanAmount: String(form.loanAmount || "").trim() ? String(form.loanAmount).trim() : null,
+    });
   };
 
   return (
@@ -654,23 +659,28 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
   const [fields, setFields] = useState({
     loanType: "", phone: "", email: "", name: "", jobTitle: "", location: "", netSalary: "", loanAmount: "", salaryThrough: "", remark: "",
   });
-  const [source, setSource] = useState("whatsapp"); // "website" -> New, "whatsapp" -> Contacted
+  const [source, setSource] = useState("whatsapp"); // "website" -> New Lead, "whatsapp" -> Contacted
+
+  const defaultStatus = (() => {
+    const findByName = (names) => statuses.find((s) => names.includes(s.name.trim().toLowerCase()));
+    if (source === "whatsapp") return findByName(["contacted"]) || statuses[1] || statuses[0];
+    return findByName(["new lead", "new"]) || statuses[0];
+  })();
 
   const set = (k) => (e) => setFields((f) => ({ ...f, [k]: e.target.value }));
 
   const confirmAdd = () => {
-    const defaultStatusId = source === "whatsapp"
-      ? (statuses[1]?.id || statuses[0]?.id)
-      : (statuses[0]?.id);
     onAdd({
       id: uid(),
       websiteId: website.id,
       dateKey: todayKey(),
       receivedTime: new Date().toISOString(),
-      statusId: defaultStatusId,
+      statusId: defaultStatus?.id,
       assignedAgentId: currentAgentId,
       edited: {},
       ...fields,
+      netSalary: fields.netSalary.trim() ? fields.netSalary.trim() : null,
+      loanAmount: fields.loanAmount.trim() ? fields.loanAmount.trim() : null,
     });
   };
 
@@ -705,7 +715,7 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
             ))}
           </div>
           <span className="text-[10px] text-faint ml-auto">
-            → status: <strong className="text-brass">{(source === "whatsapp" ? (statuses[1] || statuses[0]) : statuses[0])?.name || "—"}</strong>
+            → status: <strong className="text-brass">{defaultStatus?.name || "—"}</strong>
           </span>
         </div>
 
