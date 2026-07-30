@@ -396,16 +396,18 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
           </div>
 
           {/* Row 3b — net salary → loan amount — status */}
-          <div className="flex items-center justify-between gap-2 mt-0.5 flex-wrap">
-            <div className="flex items-center gap-1.5 text-[17px] font-bold text-cream">
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <div className="flex items-center gap-1.5 text-cream">
               <span className="w-4 shrink-0 -ml-1.5" />
               <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#EDE4FE" }}>
                 <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
               </span>
-              <span>{fmtNum(lead.netSalary)}</span>
-              {lead.salaryThrough && <span className="text-[9px] text-faint ml-0.5">({lead.salaryThrough})</span>}
+              <span className="flex flex-col leading-none">
+                <span className="text-[13px] font-bold">{fmtNum(lead.netSalary)}</span>
+                {lead.salaryThrough && <span className="text-[8px] text-faint mt-0.5">({lead.salaryThrough})</span>}
+              </span>
               <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
-              <span>{fmtNum(lead.loanAmount)}</span>
+              <span className="text-[17px] font-bold">{fmtNum(lead.loanAmount)}</span>
             </div>
             <div className="relative inline-flex shrink-0">
               {status.animated && (
