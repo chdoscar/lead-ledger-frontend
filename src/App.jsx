@@ -1466,6 +1466,7 @@ export default function App() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [addingWebsite, setAddingWebsite] = useState(null);
+  const [collapsedSections, setCollapsedSections] = useState({}); // keyed "dateKey|websiteId" — absent = expanded (default)
   const [deletingLead, setDeletingLead] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -1981,7 +1982,7 @@ export default function App() {
               <div className="grid grid-cols-3 gap-1.5">
                 {statusCounts.filter((s) => {
                   const n = s.name.trim().toLowerCase();
-                  return s.id !== "approved" && s.id !== "rejected" && n !== "met" && n !== "rejected" && n !== "future potential";
+                  return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
                 }).map((s) => {
                   const active = statusFilter === s.id;
                   const txt = contrastText(s.color);
@@ -2048,6 +2049,8 @@ export default function App() {
                   })(),
                 ].map((w) => {
                   const wLeads = dayLeads.filter((l) => l.websiteId === w.id);
+                  const sectionKey = `${dateKey}|${w.id}`;
+                  const isCollapsed = !!collapsedSections[sectionKey];
                   return (
                     <div key={w.id} className="mb-5">
                       <div className="flex items-center gap-2 mb-2 pl-1">
@@ -2059,6 +2062,14 @@ export default function App() {
                           {wLeads.length}
                         </span>
                         <div className="flex-1" />
+                        <button
+                          onClick={() => setCollapsedSections((prev) => ({ ...prev, [sectionKey]: !prev[sectionKey] }))}
+                          title={isCollapsed ? `Expand ${w.name}` : `Collapse ${w.name}`}
+                          className="w-6 h-6 flex items-center justify-center rounded-full border border-dashed transition-colors hover:bg-black/5"
+                          style={{ borderColor: w.color, color: w.color }}
+                        >
+                          {isCollapsed ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
+                        </button>
                         {dateKey === todayKey() && w.active && (
                           <button
                             onClick={() => setAddingWebsite(w)}
@@ -2070,6 +2081,7 @@ export default function App() {
                           </button>
                         )}
                       </div>
+                      {!isCollapsed && (
                       <div className="space-y-3">
                         {wLeads.map((l, i) => (
                           <LeadCard
@@ -2093,6 +2105,7 @@ export default function App() {
                           <p className="text-[11px] text-faint italic pl-1">No {w.name} leads yet today.</p>
                         )}
                       </div>
+                      )}
                     </div>
                   );
                 })}
