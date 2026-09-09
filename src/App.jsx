@@ -1267,7 +1267,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
 
       {/* Statuses / droplist */}
       <section>
-        <SectionHeader icon={Tag} title="Status droplist" desc="Shown on every lead card and the dashboard tiles, in this order." />
+        <SectionHeader icon={Tag} title="Status droplist" desc="Shown on every lead card and the dashboard tiles, in this order. Tap the inbox icon to choose which status new incoming leads get automatically." />
         <div className="bg-ink2 border border-hairline rounded-2xl shadow-sm overflow-hidden">
           {dStatuses.map((s, si) => (
             <div key={s.id} className={si > 0 ? "border-t border-hairline" : ""}>
@@ -1287,6 +1287,13 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
                   <Tag size={12} />
                   {(s.subOptions || []).length > 0 && <span>{s.subOptions.length}</span>}
                   {expandedStatusId === s.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+                <button
+                  onClick={() => setDStatuses(dStatuses.map((x) => ({ ...x, isDefault: x.id === s.id })))}
+                  title={s.isDefault ? "Default for incoming leads" : "Set as default for incoming leads"}
+                  className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${s.isDefault ? "bg-brass-15 text-brass" : "text-faint"}`}
+                >
+                  <Inbox size={13} fill={s.isDefault ? "currentColor" : "none"} fillOpacity={s.isDefault ? 0.15 : 0} />
                 </button>
                 <button
                   onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
@@ -1358,7 +1365,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
             disabled={!newStatus.name}
             onAdd={() => {
               if (!newStatus.name) return;
-              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false, subOptions: [] }]);
+              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false, subOptions: [], isDefault: false }]);
               setNewStatus({ name: "" });
             }}
           >
