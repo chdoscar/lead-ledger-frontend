@@ -124,6 +124,7 @@ function showNewLeadNotification(lead, websiteName) {
   const settings = getNotifSettings();
   if (!settings.enabled) return;
   playNotificationSound(settings.sound);
+  bumpAppBadge();
   if (typeof Notification !== "undefined" && Notification.permission === "granted") {
     try {
       new Notification("New lead received", {
@@ -132,6 +133,26 @@ function showNewLeadNotification(lead, websiteName) {
         tag: `lead-${lead.id}`,
       });
     } catch { /* Notification constructor unsupported in this context */ }
+  }
+}
+
+// Puts a small unread-count badge on the home screen app icon — same as a
+// native app's notification badge. Supported on Android/Chrome (including
+// installed PWAs/APKs); silently does nothing on browsers that don't
+// support it (e.g. desktop Safari, iOS Safari).
+function bumpAppBadge() {
+  if (!("setAppBadge" in navigator)) return;
+  try {
+    const count = parseInt(localStorage.getItem("leadledger_badge_count") || "0", 10) + 1;
+    localStorage.setItem("leadledger_badge_count", String(count));
+    navigator.setAppBadge(count).catch(() => {});
+  } catch { /* ignore */ }
+}
+
+function clearAppBadge() {
+  localStorage.setItem("leadledger_badge_count", "0");
+  if ("clearAppBadge" in navigator) {
+    try { navigator.clearAppBadge().catch(() => {}); } catch { /* ignore */ }
   }
 }
 
@@ -1639,6 +1660,17 @@ export default function App() {
   const isProductionSite = typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app");
   const DISABLE_LOGIN = !isProductionSite;
   const [loggedIn, setLoggedIn] = useState(DISABLE_LOGIN || !!savedSession);
+
+  // Clear the home-screen icon badge whenever the app is actually being
+  // looked at — on open, and whenever it comes back into the foreground
+  // after being backgrounded.
+  useEffect(() => {
+    clearAppBadge();
+    const onVisible = () => { if (document.visibilityState === "visible") clearAppBadge(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
   const [tab, setTab] = useState("leads");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
@@ -1766,13 +1798,23 @@ export default function App() {
             const site = websitesRef.current.find((w) => w.id === payload.new.website_id);
             const settings = getNotifSettings();
             if (settings.enabled) {
+              // Play the alert sound 3 times in quick succession so a single
+              // nudge already feels urgent, instead of needing the sender
+              // to spam-click it manually.
               playNotificationSound(settings.sound);
+              setTimeout(() => playNotificationSound(settings.sound), 450);
+              setTimeout(() => playNotificationSound(settings.sound), 900);
+              bumpAppBadge();
+              if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 200]);
+              }
               if (typeof Notification !== "undefined" && Notification.permission === "granted") {
                 try {
-                  new Notification("You've been nudged", {
-                    body: `${site?.name || "A lead"} — ${payload.new.name || payload.new.phone || "please respond"}`,
+                  new Notification("🔔 You've been nudged!", {
+                    body: `${site?.name || "A lead"} — ${payload.new.name || payload.new.phone || "please respond"} needs your attention now`,
                     icon: "/icon-192.png",
-                    tag: `nudge-${payload.new.id}`,
+                    tag: `nudge-${payload.new.id}-${nudgedAt}`,
+                    requireInteraction: true,
                   });
                 } catch { /* Notification unsupported in this context */ }
               }
