@@ -1476,6 +1476,8 @@ export default function App() {
   const [tab, setTab] = useState("leads");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
+  const [viaDashboardTile, setViaDashboardTile] = useState(false);
+  const [pendingEdits, setPendingEdits] = useState({}); // { [leadId]: { field: value, ... } }
   const [agentFilter, setAgentFilter] = useState(null);
   const [dateFilter, setDateFilter] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -1902,7 +1904,7 @@ export default function App() {
               <div className="absolute left-0 mt-1.5 z-30 bg-ink2 border border-hairline rounded-xl shadow-lg py-1 min-w-[170px] max-h-[70vh] overflow-y-auto">
                 <div className="px-3 pt-1.5 pb-1 text-[9px] uppercase tracking-wide text-faint font-semibold">Status</div>
                 <button
-                  onClick={() => { setStatusFilter(null); setFilterOpen(false); }}
+                  onClick={() => { setStatusFilter(null); setFilterOpen(false); setViaDashboardTile(false); }}
                   className={`w-full flex items-center justify-between text-left px-3 py-1.5 text-[12px] hover:bg-brass-15 ${!statusFilter ? "text-brass font-semibold" : "text-cream"}`}
                 >
                   All statuses
@@ -1910,7 +1912,7 @@ export default function App() {
                 {statuses.map((s) => (
                   <button
                     key={s.id}
-                    onClick={() => { setStatusFilter(s.id); setFilterOpen(false); }}
+                    onClick={() => { setStatusFilter(s.id); setFilterOpen(false); setViaDashboardTile(false); }}
                     className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-[12px] hover:bg-brass-15 ${statusFilter === s.id ? "font-semibold" : ""}`}
                     style={{ color: statusFilter === s.id ? s.color : undefined }}
                   >
@@ -2026,7 +2028,7 @@ export default function App() {
               <div className="flex items-center justify-between mb-1.5 px-0.5">
                 <span className="text-[9px] font-bold uppercase tracking-wider text-faint">Status overview</span>
                 {statusFilter && (
-                  <button onClick={() => setStatusFilter(null)} className="btn3d btn3d-default text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="btn3d btn3d-default text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full">
                     Back
                   </button>
                 )}
@@ -2041,7 +2043,7 @@ export default function App() {
                   return (
                     <button
                       key={s.id}
-                      onClick={() => setStatusFilter(active ? null : s.id)}
+                      onClick={() => { setStatusFilter(active ? null : s.id); setViaDashboardTile(!active); }}
                       className="relative h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
                       style={{
                         backgroundImage: `linear-gradient(165deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(${s.color}, ${s.color})`,
@@ -2138,7 +2140,7 @@ export default function App() {
                         {wLeads.map((l, i) => (
                           <LeadCard
                             key={l.id}
-                            lead={l}
+                            lead={viaDashboardTile && pendingEdits[l.id] ? { ...l, ...pendingEdits[l.id] } : l}
                             index={i + 1}
                             website={w}
                             statuses={statuses}
@@ -2146,10 +2148,22 @@ export default function App() {
                             role={role}
                             onEdit={setEditingLead}
                             notify={notify}
-                            onStatusChange={(id, statusId) => patchLead(id, { statusId, subStatus: null })}
-                            onSubStatusChange={(id, subStatus) => patchLead(id, { subStatus: subStatus || null })}
-                            onAssign={(id, assignedAgentId) => patchLead(id, { assignedAgentId, statusId: statuses[0]?.id })}
-                            onRemarkChange={(id, remark) => patchLead(id, { remark, edited: { ...leads.find((x) => x.id === id)?.edited, remark: true } })}
+                            onStatusChange={(id, statusId) => {
+                              if (viaDashboardTile) setPendingEdits((p) => ({ ...p, [id]: { ...p[id], statusId, subStatus: null } }));
+                              else patchLead(id, { statusId, subStatus: null });
+                            }}
+                            onSubStatusChange={(id, subStatus) => {
+                              if (viaDashboardTile) setPendingEdits((p) => ({ ...p, [id]: { ...p[id], subStatus: subStatus || null } }));
+                              else patchLead(id, { subStatus: subStatus || null });
+                            }}
+                            onAssign={(id, assignedAgentId) => {
+                              if (viaDashboardTile) setPendingEdits((p) => ({ ...p, [id]: { ...p[id], assignedAgentId, statusId: statuses[0]?.id } }));
+                              else patchLead(id, { assignedAgentId, statusId: statuses[0]?.id });
+                            }}
+                            onRemarkChange={(id, remark) => {
+                              if (viaDashboardTile) setPendingEdits((p) => ({ ...p, [id]: { ...p[id], remark } }));
+                              else patchLead(id, { remark, edited: { ...leads.find((x) => x.id === id)?.edited, remark: true } });
+                            }}
                             onDeleteRequest={setDeletingLead}
                           />
                         ))}
@@ -2196,6 +2210,38 @@ export default function App() {
       {addingWebsite && <AddLeadModal website={addingWebsite} onClose={() => setAddingWebsite(null)} onAdd={addLead} currentAgentId={currentAgentId} statuses={statuses} />}
       {deletingLead && <ConfirmDeleteModal lead={deletingLead} onClose={() => setDeletingLead(null)} onConfirm={deleteLead} />}
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
+
+      {viaDashboardTile && Object.keys(pendingEdits).length > 0 && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-xl p-5">
+            <h3 className="text-cream font-semibold text-[15px] mb-1">Save changes?</h3>
+            <p className="text-[12px] text-faint mb-4">
+              You've changed {Object.keys(pendingEdits).length} lead{Object.keys(pendingEdits).length > 1 ? "s" : ""} here. Nothing is saved yet.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPendingEdits({})}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-ink text-dim border border-hairline rounded-lg hover:brightness-95 transition-all"
+              >
+                Discard
+              </button>
+              <button
+                onClick={async () => {
+                  const entries = Object.entries(pendingEdits);
+                  for (const [id, fields] of entries) {
+                    await patchLead(id, fields);
+                  }
+                  setPendingEdits({});
+                  notify("Changes saved");
+                }}
+                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-sage text-ink rounded-lg hover:brightness-110 transition-all"
+              >
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
