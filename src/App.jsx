@@ -403,8 +403,6 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               >
                 <Info size={15} strokeWidth={2.6} />
               </button>
-              <IconBtn icon={MessageCircle} label="WhatsApp" tone="chat" onClick={chat} disabled={!lead.phone} />
-              <IconBtn icon={Phone} label="Call" tone="call" onClick={call} disabled={!lead.phone} />
             </div>
           </div>
 
@@ -520,8 +518,8 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               <select
                 value={lead.statusId}
                 onChange={(e) => onStatusChange(lead.id, e.target.value)}
-                style={{ borderColor: status.color, color: contrastText(status.color), background: status.color, width: 100, maxWidth: 100 }}
-                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
+                style={{ color: status.color, background: status.color + "17", width: 100, maxWidth: 100 }}
+                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border-0 focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
               >
                 {!statuses.some((s) => s.id === lead.statusId) && (
                   <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
@@ -574,6 +572,26 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 {lead.remark ? lead.remark : <span className="italic font-normal text-faint">Tap to add remark</span>}
               </div>
             )}
+          </div>
+
+          {/* Row 5 — full-width WhatsApp / Call buttons */}
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={chat}
+              disabled={!lead.phone}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "#22C55E" }}
+            >
+              <MessageCircle size={15} strokeWidth={2.4} /> WhatsApp
+            </button>
+            <button
+              onClick={call}
+              disabled={!lead.phone}
+              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "#3B82F6" }}
+            >
+              <Phone size={15} strokeWidth={2.4} /> Call
+            </button>
           </div>
 
         </div>
@@ -2123,16 +2141,16 @@ export default function App() {
       `}</style>
 
       {/* Header — single compact row */}
-      <header className="sticky top-0 z-30 bg-ink-95 backdrop-blur border-b border-hairline2">
+      <header className="sticky top-0 z-30" style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)", boxShadow: "0 2px 10px rgba(109,40,217,0.25)" }}>
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center gap-3">
           <button onClick={() => { setTab("leads"); setStatusFilter(null); setAgentFilter(null); setDateFilter(null); setViaDashboardTile(false); setPendingEdits({}); }} className="flex items-center gap-2 shrink-0 active:opacity-70 transition-opacity">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "linear-gradient(155deg, #A855F7, #7C3AED)", boxShadow: "0 2px 5px rgba(124,58,237,0.4)" }}
+              style={{ background: "rgba(255,255,255,0.18)" }}
             >
               <NotebookText size={20} className="text-white" strokeWidth={2.3} />
             </div>
-            <h1 className="text-cream font-semibold text-[15px] hidden md:block" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+            <h1 className="text-white font-semibold text-[15px] hidden md:block" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
               Lead
             </h1>
           </button>
@@ -2143,10 +2161,10 @@ export default function App() {
             <button
               onClick={() => setFilterOpen((o) => !o)}
               title="Filter leads"
-              className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${(statusFilter || agentFilter || dateFilter) ? "border-brass bg-brass-15 text-brass" : "border-hairline bg-ink2 text-dim"}`}
+              className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${(statusFilter || agentFilter || dateFilter) ? "border-white bg-white text-brass" : "border-white/40 bg-white/10 text-white"}`}
             >
               <Filter size={14} strokeWidth={2.3} />
-              {(statusFilter || agentFilter || dateFilter) && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-brass" />}
+              {(statusFilter || agentFilter || dateFilter) && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-white" style={{ boxShadow: "0 0 0 1.5px #7C3AED" }} />}
             </button>
             {filterOpen && (
               <div className="absolute left-0 mt-1.5 z-30 bg-ink2 border border-hairline rounded-xl shadow-lg py-1 min-w-[170px] max-h-[70vh] overflow-y-auto">
@@ -2219,16 +2237,17 @@ export default function App() {
           </div>
 
           <div className="relative w-28 sm:w-40 shrink-0">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/70" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search…"
-              className="w-full bg-ink2 border border-hairline rounded-full pl-7 pr-2 py-1.5 text-[12px] text-cream placeholder-faint focus:outline-none focus-border-brass"
+              className="w-full border border-white/30 rounded-full pl-7 pr-2 py-1.5 text-[12px] text-white placeholder-white/60 focus:outline-none"
+              style={{ background: "rgba(255,255,255,0.15)" }}
             />
           </div>
 
-          <nav className="flex bg-ink2 border border-hairline rounded-full p-0.5 shrink-0">
+          <nav className="flex rounded-full p-0.5 shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
             {[
               { id: "leads", label: "Leads", icon: Home },
               { id: "legacy", label: "Legacy", icon: ClipboardPaste },
@@ -2241,7 +2260,7 @@ export default function App() {
                   if (t.id === "leads") { setStatusFilter(null); setAgentFilter(null); setDateFilter(null); setViaDashboardTile(false); setPendingEdits({}); }
                 }}
                 title={t.label}
-                className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-full transition-colors ${tab === t.id ? "bg-brass text-ink font-medium" : "text-dim hover-cream"}`}
+                className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-full transition-colors ${tab === t.id ? "bg-white text-brass font-medium" : "text-white/80"}`}
               >
                 <t.icon size={13} /> <span className="hidden lg:inline">{t.label}</span>
               </button>
@@ -2275,43 +2294,42 @@ export default function App() {
 
         {tab === "leads" && (
           <>
-            <div className="bg-ink2 border border-hairline rounded-xl p-2 shadow-sm" style={{ marginBottom: "10px" }}>
-              <div className="flex items-center justify-between mb-1.5 px-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-faint">Status overview</span>
+            <div className="bg-ink2 border border-hairline rounded-2xl p-3.5 shadow-sm" style={{ marginBottom: "10px" }}>
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
+                <span className="flex items-center gap-1.5 text-[12px] font-bold text-cream">
+                  <Calendar size={13} className="text-brass" /> Today's Leads
+                </span>
                 {statusFilter && (
-                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="btn3d btn3d-default text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full border border-hairline">
                     Back
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-2">
                 {statusCounts.filter((s) => {
                   const n = s.name.trim().toLowerCase();
                   return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
                 }).map((s) => {
                   const active = statusFilter === s.id;
-                  const txt = contrastText(s.color);
+                  const n = s.name.trim().toLowerCase();
+                  const TileIcon = n === "contacted" ? Users : (n === "appointment" ? Calendar : Plus);
                   return (
                     <button
                       key={s.id}
                       onClick={() => { setStatusFilter(active ? null : s.id); setViaDashboardTile(!active); }}
-                      className="relative h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
+                      className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all active:scale-95"
                       style={{
-                        backgroundImage: `linear-gradient(165deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(${s.color}, ${s.color})`,
-                        boxShadow: active
-                          ? `0 0 0 2px #FFFFFF, 0 0 0 4px ${s.color}, 0 3px 0 ${darkenHex(s.color, 0.3)}`
-                          : `0 3px 0 ${darkenHex(s.color, 0.3)}`,
+                        background: s.color + "1A",
+                        boxShadow: active ? `0 0 0 2px ${s.color}` : "none",
                       }}
                     >
-                      {active && (
-                        <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center shadow">
-                          <Check size={7} strokeWidth={3.5} style={{ color: s.color }} />
-                        </span>
-                      )}
-                      <span className="text-[20px] font-extrabold leading-none tracking-tight" style={{ color: txt, textShadow: txt === "#FFFFFF" ? "0 1px 2px rgba(0,0,0,0.2)" : "none" }}>
+                      <span className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: s.color + "30" }}>
+                        <TileIcon size={14} style={{ color: s.color }} strokeWidth={2.4} />
+                      </span>
+                      <span className="text-[19px] font-extrabold leading-none" style={{ color: s.color }}>
                         {s.count}
                       </span>
-                      <span className="text-[9px] font-bold uppercase tracking-wide text-center px-1 leading-none" style={{ color: txt, opacity: 0.9 }}>
+                      <span className="text-[9.5px] font-semibold text-center px-1 leading-none text-dim">
                         {s.name}
                       </span>
                     </button>
