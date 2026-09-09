@@ -1808,8 +1808,11 @@ export default function App() {
   );
   const activeWebsites = websites.filter((w) => w.active && isWebsiteVisible(w));
 
+  const isLeadVisible = (l) =>
+    visibleWebsiteIds.has(l.websiteId) && (role === "admin" || l.assignedAgentId === currentAgentId);
+
   const filteredLeads = useMemo(() => {
-    let result = leads.filter((l) => visibleWebsiteIds.has(l.websiteId));
+    let result = leads.filter(isLeadVisible);
     if (statusFilter) result = result.filter((l) => l.statusId === statusFilter);
     if (agentFilter) result = result.filter((l) => l.assignedAgentId === agentFilter);
     if (dateFilter) result = result.filter((l) => l.dateKey === dateFilter);
@@ -1820,9 +1823,9 @@ export default function App() {
       );
     }
     return result;
-  }, [leads, query, statusFilter, agentFilter, dateFilter, visibleWebsiteIds]);
+  }, [leads, query, statusFilter, agentFilter, dateFilter, visibleWebsiteIds, role, currentAgentId]);
 
-  const visibleLeads = useMemo(() => leads.filter((l) => visibleWebsiteIds.has(l.websiteId)), [leads, visibleWebsiteIds]);
+  const visibleLeads = useMemo(() => leads.filter(isLeadVisible), [leads, visibleWebsiteIds, role, currentAgentId]);
 
   const availableDates = useMemo(
     () => [...new Set(visibleLeads.map((l) => l.dateKey))].sort((a, b) => dateSortKey(b) - dateSortKey(a)),
