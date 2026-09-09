@@ -350,6 +350,55 @@ function Toast({ text, onDone }) {
 /* ------------------------------------------------------------------ */
 /*  Lead Card                                                          */
 /* ------------------------------------------------------------------ */
+function StatusPicker({ value, statuses, onChange, animated, color }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const current = statuses.find((s) => s.id === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [open]);
+
+  return (
+    <div className="relative inline-flex shrink-0" ref={ref}>
+      {animated && (
+        <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-10">
+          <span className="status-shimmer-bar" style={{ color }} />
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{ color, background: color + "17" }}
+        className={`flex items-center gap-1 text-[12px] font-semibold rounded-full pl-2.5 pr-2 py-1.5 max-w-[140px] ${animated ? "status-glow-pulse" : ""}`}
+      >
+        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+        <span className="truncate">{current ? current.name : "Unknown"}</span>
+        <ChevronDown size={11} className="shrink-0" strokeWidth={2.5} />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 z-30 bg-ink2 border border-hairline rounded-xl shadow-lg py-1 min-w-[140px] max-h-[60vh] overflow-y-auto">
+          {statuses.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => { onChange(s.id); setOpen(false); }}
+              className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-[12px] hover:bg-brass-15 ${s.id === value ? "font-semibold" : "text-cream"}`}
+              style={{ color: s.id === value ? s.color : undefined }}
+            >
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId, onEdit, onStatusChange, onSubStatusChange, onAssign, onRemarkChange, onNudge, onDeleteRequest, notify }) {
   const status = statuses.find((s) => s.id === lead.statusId) || { id: lead.statusId, name: "Unknown", color: "#9CA3AF" };
   const agent = agents.find((a) => a.id === lead.assignedAgentId);
@@ -508,28 +557,13 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
               <span className="text-[19px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
             </div>
-            <div className="relative inline-flex shrink-0">
-              {status.animated && (
-                <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-10">
-                  <span className="status-shimmer-bar" style={{ color: status.color }} />
-                </span>
-              )}
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full pointer-events-none" style={{ background: status.color }} />
-              <select
-                value={lead.statusId}
-                onChange={(e) => onStatusChange(lead.id, e.target.value)}
-                style={{ color: status.color, background: status.color + "17", width: 100, maxWidth: 100 }}
-                className={`relative flex items-center justify-center text-center text-[12px] font-semibold rounded-full pl-5 pr-6 py-1.5 border-0 focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
-              >
-                {!statuses.some((s) => s.id === lead.statusId) && (
-                  <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
-                )}
-                {statuses.map((s) => (
-                  <option key={s.id} value={s.id} style={{ color: "#000000" }}>{s.name}</option>
-                ))}
-              </select>
-              <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: status.color }} strokeWidth={2.5} />
-            </div>
+            <StatusPicker
+              value={lead.statusId}
+              statuses={statuses}
+              color={status.color}
+              animated={status.animated}
+              onChange={(statusId) => onStatusChange(lead.id, statusId)}
+            />
           </div>
 
           {status.subOptions && status.subOptions.length > 0 && (
