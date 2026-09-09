@@ -421,7 +421,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               {lead.assignedAgentId && lead.assignedAgentId !== currentAgentId && (
                 <button
                   onClick={() => onNudge(lead.id, agents.find((a) => a.id === lead.assignedAgentId)?.name)}
-                  className="flex items-center gap-1 text-[10px] font-semibold text-amber px-2.5 py-1 rounded-full hover:brightness-95 transition-all"
+                  className="flex items-center gap-1 text-[10px] font-semibold text-amber px-2.5 py-1 rounded-full hover:brightness-95 transition-all active:scale-95"
                   style={{ background: "rgba(217,119,6,0.12)" }}
                   title="Remind this agent to respond"
                 >
