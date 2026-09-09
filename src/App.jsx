@@ -424,27 +424,71 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
       <div className="flex items-start gap-3">
         <div className="flex-1 min-w-0">
 
-          {/* Row 1 — phone + actions + info toggle */}
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0 flex-1">
-              <span className="text-[11px] font-mono font-semibold text-brass shrink-0 w-4 text-right -ml-1.5">{index}.</span>
-              <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCEAFE" }}>
-                <Phone size={11} className="text-sky" strokeWidth={2.6} />
-              </span>
-              <div style={{ color: "#000000" }} className={`font-bold ${phoneSizeCls(lead.phone)} min-w-0 ${(lead.phone || "").includes("/") ? "break-words" : "whitespace-nowrap"} ${editedCls("phone")}`}>
-                {lead.phone || "—"}
+            {/* LEFT COLUMN */}
+            <div className="flex-1 min-w-0">
+              {/* Phone */}
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-[11px] font-mono font-semibold text-brass shrink-0 w-4 text-right -ml-1.5">{index}.</span>
+                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCEAFE" }}>
+                  <Phone size={11} className="text-sky" strokeWidth={2.6} />
+                </span>
+                <div style={{ color: "#000000" }} className={`font-bold ${phoneSizeCls(lead.phone)} min-w-0 ${(lead.phone || "").includes("/") ? "break-words" : "whitespace-nowrap"} ${editedCls("phone")}`}>
+                  {lead.phone || "—"}
+                </div>
+                <button
+                  onClick={() => copy(lead.phone, "Phone")}
+                  disabled={!lead.phone}
+                  title="Copy phone"
+                  aria-label="Copy phone"
+                  className="text-slate hover-cream shrink-0 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  <Copy size={13} strokeWidth={2.2} />
+                </button>
               </div>
-              <button
-                onClick={() => copy(lead.phone, "Phone")}
-                disabled={!lead.phone}
-                title="Copy phone"
-                aria-label="Copy phone"
-                className="text-slate hover-cream shrink-0 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <Copy size={13} strokeWidth={2.2} />
-              </button>
+
+              {/* Loan type / time */}
+              <div className={`flex items-start gap-1.5 font-bold text-[14px] min-w-0 break-words mt-1 ${editedCls("loanType")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
+                <span className="w-4 shrink-0 -ml-1.5" />
+                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
+                  <FileText size={11} className="text-amber" strokeWidth={2.6} />
+                </span>
+                <span>
+                  {lead.loanType || (
+                    <span className="text-faint italic font-normal">
+                      {lead.source === "whatsapp" ? "Whatsapp" : lead.source === "email" ? "Email" : "Website"}
+                    </span>
+                  )}
+                  <span className="ml-2 font-mono text-[12px] font-normal text-dim whitespace-nowrap">{fmtTime(lead.receivedTime)}</span>
+                </span>
+              </div>
+
+              {/* Job title · location */}
+              <div className={`flex items-start gap-1.5 text-[13.5px] font-medium mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
+                <span className="w-4 shrink-0 -ml-1.5" />
+                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
+                  <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
+                </span>
+                <span>{lead.jobTitle || "—"} <span className="text-[10px]">({lead.location || "—"})</span></span>
+              </div>
+
+              {/* Net salary → loan amount */}
+              <div className="flex items-center gap-1.5 text-cream mt-0.5">
+                <span className="w-4 shrink-0 -ml-1.5" />
+                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#EDE4FE" }}>
+                  <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
+                </span>
+                <span className="flex flex-col leading-none">
+                  <span className="text-[15px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.netSalary)}</span>
+                  {lead.salaryThrough && <span className="text-[9px] text-faint mt-0.5">({lead.salaryThrough})</span>}
+                </span>
+                <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
+                <span className="text-[19px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0 pb-0.5">
+
+            {/* RIGHT COLUMN — info, status, agent, nudge, all stacked */}
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
               <button
                 onClick={() => setExpanded((e) => !e)}
                 title={expanded ? "Hide info" : "Show name & email"}
@@ -452,26 +496,29 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               >
                 <Info size={15} strokeWidth={2.6} />
               </button>
-            </div>
-          </div>
 
-          {/* Row 2 — loan type / time — agent assign */}
-          <div className="flex items-start justify-between gap-2 mt-1">
-            <div className={`flex items-start gap-1.5 font-bold text-[15px] min-w-0 flex-1 break-words ${editedCls("loanType")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
-              <span className="w-4 shrink-0 -ml-1.5" />
-              <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
-                <FileText size={11} className="text-amber" strokeWidth={2.6} />
-              </span>
-              <span>
-                {lead.loanType || (
-                  <span className="text-faint italic font-normal">
-                    {lead.source === "whatsapp" ? "Whatsapp" : lead.source === "email" ? "Email" : "Website"}
-                  </span>
-                )}
-                <span className="ml-2 font-mono text-[12px] font-normal text-dim whitespace-nowrap">{fmtTime(lead.receivedTime)}</span>
-              </span>
-            </div>
-            <div className="relative shrink-0 flex flex-col items-end gap-1">
+              <StatusPicker
+                value={lead.statusId}
+                statuses={statuses}
+                color={status.color}
+                animated={status.animated}
+                onChange={(statusId) => onStatusChange(lead.id, statusId)}
+              />
+
+              {status.subOptions && status.subOptions.length > 0 && (
+                <select
+                  value={lead.subStatus || ""}
+                  onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
+                  style={{ width: 140, maxWidth: 140 }}
+                  className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer truncate"
+                >
+                  <option value="">Others</option>
+                  {status.subOptions.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              )}
+
               <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-brass-15 flex items-center justify-center pointer-events-none">
                   <UserCog size={9} className="text-brass" strokeWidth={2.5} />
@@ -486,6 +533,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                   ))}
                 </select>
               </div>
+
               {lead.assignedAgentId && lead.assignedAgentId !== currentAgentId && (
                 <button
                   onClick={() => onNudge(lead.id, agents.find((a) => a.id === lead.assignedAgentId)?.name)}
@@ -531,54 +579,6 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Row 3 — job title · location */}
-          <div className={`flex items-start gap-1.5 text-[13.5px] font-medium mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
-            <span className="w-4 shrink-0 -ml-1.5" />
-            <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
-              <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
-            </span>
-            <span>{lead.jobTitle || "—"} <span className="text-[10px]">({lead.location || "—"})</span></span>
-          </div>
-
-          {/* Row 3b — net salary → loan amount — status */}
-          <div className="flex items-center justify-between gap-2 mt-0.5">
-            <div className="flex items-center gap-1.5 text-cream">
-              <span className="w-4 shrink-0 -ml-1.5" />
-              <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#EDE4FE" }}>
-                <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
-              </span>
-              <span className="flex flex-col leading-none">
-                <span className="text-[15px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.netSalary)}</span>
-                {lead.salaryThrough && <span className="text-[9px] text-faint mt-0.5">({lead.salaryThrough})</span>}
-              </span>
-              <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
-              <span className="text-[19px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
-            </div>
-            <StatusPicker
-              value={lead.statusId}
-              statuses={statuses}
-              color={status.color}
-              animated={status.animated}
-              onChange={(statusId) => onStatusChange(lead.id, statusId)}
-            />
-          </div>
-
-          {status.subOptions && status.subOptions.length > 0 && (
-            <div className="flex justify-end mt-1">
-              <select
-                value={lead.subStatus || ""}
-                onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
-                style={{ width: 140, maxWidth: 140 }}
-                className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer truncate"
-              >
-                <option value="">Others</option>
-                {status.subOptions.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
             </div>
           )}
 
