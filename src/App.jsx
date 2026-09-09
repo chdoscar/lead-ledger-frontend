@@ -469,7 +469,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
                   <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
                 </span>
-                <span>{lead.jobTitle || "—"} <span className="text-[11px]">({lead.location || "—"})</span></span>
+                <span>{lead.jobTitle || "—"} <span className="text-[13px]">({lead.location || "—"})</span></span>
               </div>
 
               {/* Net salary → loan amount */}
@@ -613,18 +613,18 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
             <button
               onClick={chat}
               disabled={!lead.phone}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: "#22C55E" }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[15px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "#22C55E", fontFamily: "'Poppins', sans-serif" }}
             >
-              <MessageCircle size={15} strokeWidth={2.4} /> WhatsApp
+              <MessageCircle size={17} strokeWidth={2.4} /> WhatsApp
             </button>
             <button
               onClick={call}
               disabled={!lead.phone}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-[13px] font-semibold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: "#3B82F6" }}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[15px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: "#3B82F6", fontFamily: "'Poppins', sans-serif" }}
             >
-              <Phone size={15} strokeWidth={2.4} /> Call
+              <Phone size={17} strokeWidth={2.4} /> Call
             </button>
           </div>
 
