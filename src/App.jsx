@@ -1877,7 +1877,7 @@ export default function App() {
       {/* Header — single compact row */}
       <header className="sticky top-0 z-30 bg-ink-95 backdrop-blur border-b border-hairline2">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center gap-3">
-          <button onClick={() => setTab("leads")} className="flex items-center gap-2 shrink-0 active:opacity-70 transition-opacity">
+          <button onClick={() => { setTab("leads"); setStatusFilter(null); setAgentFilter(null); setDateFilter(null); setViaDashboardTile(false); setPendingEdits({}); }} className="flex items-center gap-2 shrink-0 active:opacity-70 transition-opacity">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
               style={{ background: "linear-gradient(155deg, #A855F7, #7C3AED)", boxShadow: "0 2px 5px rgba(124,58,237,0.4)" }}
@@ -1988,7 +1988,10 @@ export default function App() {
             ].map((t) => (
               <button
                 key={t.id}
-                onClick={() => setTab(t.id)}
+                onClick={() => {
+                  setTab(t.id);
+                  if (t.id === "leads") { setStatusFilter(null); setAgentFilter(null); setDateFilter(null); setViaDashboardTile(false); setPendingEdits({}); }
+                }}
                 title={t.label}
                 className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-full transition-colors ${tab === t.id ? "bg-brass text-ink font-medium" : "text-dim hover-cream"}`}
               >
