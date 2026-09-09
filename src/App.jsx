@@ -329,7 +329,7 @@ function Toast({ text, onDone }) {
 /* ------------------------------------------------------------------ */
 /*  Lead Card                                                          */
 /* ------------------------------------------------------------------ */
-function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStatusChange, onSubStatusChange, onAssign, onRemarkChange, onDeleteRequest, notify }) {
+function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId, onEdit, onStatusChange, onSubStatusChange, onAssign, onRemarkChange, onNudge, onDeleteRequest, notify }) {
   const status = statuses.find((s) => s.id === lead.statusId) || { id: lead.statusId, name: "Unknown", color: "#9CA3AF" };
   const agent = agents.find((a) => a.id === lead.assignedAgentId);
   const editedCls = (f) => (lead.edited?.[f] ? "underline decoration-dotted decoration-brass underline-offset-4" : "");
@@ -403,19 +403,34 @@ function LeadCard({ lead, index, website, statuses, agents, role, onEdit, onStat
                 <span className="ml-2 font-mono text-[12px] font-normal text-dim whitespace-nowrap">{fmtTime(lead.receivedTime)}</span>
               </span>
             </div>
-            <div className="relative shrink-0">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-brass-15 flex items-center justify-center pointer-events-none">
-                <UserCog size={9} className="text-brass" strokeWidth={2.5} />
-              </span>
-              <select
-                value={lead.assignedAgentId}
-                onChange={(e) => onAssign(lead.id, e.target.value)}
-                className="text-[11px] font-semibold rounded-full pl-7 pr-3 py-1.5 border border-hairline bg-ink2 text-dim shadow-sm focus:outline-none focus-border-brass cursor-pointer appearance-none"
-              >
-                {agents.filter((a) => a.active !== false || a.id === lead.assignedAgentId).map((a) => (
-                  <option key={a.id} value={a.id} style={{ color: "#000" }}>{shortAgentName(a.name)}{a.active === false ? " (off)" : ""}</option>
-                ))}
-              </select>
+            <div className="relative shrink-0 flex flex-col items-end gap-1">
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-brass-15 flex items-center justify-center pointer-events-none">
+                  <UserCog size={9} className="text-brass" strokeWidth={2.5} />
+                </span>
+                <select
+                  value={lead.assignedAgentId}
+                  onChange={(e) => onAssign(lead.id, e.target.value)}
+                  className="text-[11px] font-semibold rounded-full pl-7 pr-3 py-1.5 border border-hairline bg-ink2 text-dim shadow-sm focus:outline-none focus-border-brass cursor-pointer appearance-none"
+                >
+                  {agents.filter((a) => a.active !== false || a.id === lead.assignedAgentId).map((a) => (
+                    <option key={a.id} value={a.id} style={{ color: "#000" }}>{shortAgentName(a.name)}{a.active === false ? " (off)" : ""}</option>
+                  ))}
+                </select>
+              </div>
+              {lead.assignedAgentId && lead.assignedAgentId !== currentAgentId && (
+                <button
+                  onClick={() => onNudge(lead.id, agents.find((a) => a.id === lead.assignedAgentId)?.name)}
+                  className="flex items-center gap-1 text-[10px] font-semibold text-amber px-2.5 py-1 rounded-full hover:brightness-95 transition-all"
+                  style={{ background: "rgba(217,119,6,0.12)" }}
+                  title="Remind this agent to respond"
+                >
+                  <Sparkles size={10} /> Nudge
+                </button>
+              )}
+              {lead.nudgedAt && Date.now() - new Date(lead.nudgedAt).getTime() < 15 * 60 * 1000 && (
+                <span className="text-[9px] text-faint italic">Nudged {Math.max(1, Math.round((Date.now() - new Date(lead.nudgedAt).getTime()) / 60000))}m ago</span>
+              )}
             </div>
           </div>
 
@@ -1615,6 +1630,9 @@ export default function App() {
   })();
   const [role, setRole] = useState(savedSession?.role || "admin");
   const [currentAgentId, setCurrentAgentId] = useState(savedSession?.id || "admin");
+  const currentAgentIdRef = useRef(currentAgentId);
+  useEffect(() => { currentAgentIdRef.current = currentAgentId; }, [currentAgentId]);
+  const notifiedNudgesRef = useRef(new Set());
   // Login can't actually work inside Claude's artifact preview (no real
   // network access to the backend), so it's auto-bypassed there. On the
   // real deployed site (your Vercel domain), login stays fully required.
@@ -1730,6 +1748,37 @@ export default function App() {
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads" }, (payload) => {
         setLeads((prev) => prev.map((l) => (l.id === payload.new.id ? toCamel(payload.new) : l)));
+
+        // Was this update a nudge aimed at ME specifically? Rather than
+        // diffing old vs new (Postgres doesn't send the full old row by
+        // default), treat any nudge timestamp from the last 10 seconds as
+        // "just happened" — old enough to ignore stale data, fresh enough
+        // to be this exact nudge.
+        const nudgedAt = payload.new.nudged_at;
+        if (
+          nudgedAt &&
+          payload.new.assigned_agent_id === currentAgentIdRef.current &&
+          Date.now() - new Date(nudgedAt).getTime() < 10000
+        ) {
+          const dedupeKey = `${payload.new.id}-${nudgedAt}`;
+          if (!notifiedNudgesRef.current.has(dedupeKey)) {
+            notifiedNudgesRef.current.add(dedupeKey);
+            const site = websitesRef.current.find((w) => w.id === payload.new.website_id);
+            const settings = getNotifSettings();
+            if (settings.enabled) {
+              playNotificationSound(settings.sound);
+              if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+                try {
+                  new Notification("You've been nudged", {
+                    body: `${site?.name || "A lead"} — ${payload.new.name || payload.new.phone || "please respond"}`,
+                    icon: "/icon-192.png",
+                    tag: `nudge-${payload.new.id}`,
+                  });
+                } catch { /* Notification unsupported in this context */ }
+              }
+            }
+          }
+        }
       })
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "leads" }, (payload) => {
         setLeads((prev) => prev.filter((l) => l.id !== payload.old.id));
@@ -2303,6 +2352,7 @@ export default function App() {
                             statuses={statuses}
                             agents={agents}
                             role={role}
+                            currentAgentId={currentAgentId}
                             onEdit={setEditingLead}
                             notify={notify}
                             onStatusChange={(id, statusId) => {
@@ -2320,6 +2370,10 @@ export default function App() {
                             onRemarkChange={(id, remark) => {
                               if (viaDashboardTile) setPendingEdits((p) => ({ ...p, [id]: { ...p[id], remark } }));
                               else patchLead(id, { remark, edited: { ...leads.find((x) => x.id === id)?.edited, remark: true } });
+                            }}
+                            onNudge={(id, agentName) => {
+                              patchLead(id, { nudgedAt: new Date().toISOString() });
+                              notify(`Nudge sent to ${agentName || "agent"}`);
                             }}
                             onDeleteRequest={setDeletingLead}
                           />
