@@ -74,6 +74,67 @@ function toCamel(obj) {
   return out;
 }
 
+// Alert tones generated directly with the Web Audio API — no sound files
+// needed. A website can't hook into the phone's actual system notification
+// sound picker (that's only possible in a real native Android app), so this
+// is the closest practical equivalent: a distinct short tone that plays
+// alongside the notification popup while the app is open.
+const NOTIFICATION_SOUNDS = {
+  none: { label: "None" },
+  chime: { label: "Chime", notes: [[880, 0.12], [1318.5, 0.18]] },
+  ding: { label: "Ding", notes: [[1046.5, 0.25]] },
+  double: { label: "Double beep", notes: [[700, 0.09], [0, 0.05], [700, 0.09]] },
+  rising: { label: "Rising tone", notes: [[523, 0.09], [659, 0.09], [784, 0.15]] },
+};
+
+function playNotificationSound(key) {
+  const sound = NOTIFICATION_SOUNDS[key];
+  if (!sound || !sound.notes) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    let t = ctx.currentTime;
+    sound.notes.forEach(([freq, duration]) => {
+      if (freq > 0) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.001, t);
+        gain.gain.exponentialRampToValueAtTime(0.25, t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + duration + 0.02);
+      }
+      t += duration;
+    });
+  } catch { /* Web Audio unavailable — silently skip */ }
+}
+
+function getNotifSettings() {
+  try {
+    return JSON.parse(localStorage.getItem("leadledger_notif_settings") || "null")
+      || { enabled: false, sound: "chime" };
+  } catch {
+    return { enabled: false, sound: "chime" };
+  }
+}
+
+function showNewLeadNotification(lead, websiteName) {
+  const settings = getNotifSettings();
+  if (!settings.enabled) return;
+  playNotificationSound(settings.sound);
+  if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+    try {
+      new Notification("New lead received", {
+        body: `${websiteName || "A website"} — ${lead.name || lead.phone || "New enquiry"}`,
+        icon: "/icon-192.png",
+        tag: `lead-${lead.id}`,
+      });
+    } catch { /* Notification constructor unsupported in this context */ }
+  }
+}
+
 function nowInMalaysia() {
   // Reads "wall clock" Malaysia time (UTC+8) regardless of what timezone
   // the device itself is set to, so every agent's app agrees on what
@@ -1030,6 +1091,86 @@ function AddRow({ children, onAdd, disabled }) {
   );
 }
 
+function NotificationSettings() {
+  const [settings, setSettings] = useState(getNotifSettings());
+  const [permission, setPermission] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
+  );
+
+  const save = (next) => {
+    setSettings(next);
+    localStorage.setItem("leadledger_notif_settings", JSON.stringify(next));
+  };
+
+  const toggleEnabled = async () => {
+    if (!settings.enabled) {
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        const result = await Notification.requestPermission();
+        setPermission(result);
+      }
+      save({ ...settings, enabled: true });
+    } else {
+      save({ ...settings, enabled: false });
+    }
+  };
+
+  return (
+    <section>
+      <SectionHeader
+        icon={Inbox}
+        title="Notifications"
+        desc="A popup and sound when a new lead comes in, while the app is open. This is a per-device setting — each phone can choose its own. Websites can't control your phone's actual system notification sound, so pick one of these built-in tones instead."
+      />
+      <div className="bg-ink2 border border-hairline rounded-2xl shadow-sm px-3.5 py-3">
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-medium text-cream">Notify me about new leads</span>
+          <button
+            onClick={toggleEnabled}
+            className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200"
+            style={{ background: settings.enabled ? "#34C759" : "#D1D5DB", width: 36, height: 22 }}
+          >
+            <span
+              className="absolute top-0.5 left-0.5 rounded-full bg-white shadow transition-transform duration-200"
+              style={{ width: 18, height: 18, transform: settings.enabled ? "translateX(14px)" : "translateX(0)" }}
+            />
+          </button>
+        </div>
+
+        {settings.enabled && permission === "denied" && (
+          <p className="text-[11px] text-rust mt-2">
+            Popup notifications are blocked in your browser/phone settings — you'll still hear the sound, but won't see a popup. Check your browser's site permissions to allow it.
+          </p>
+        )}
+
+        {settings.enabled && (
+          <div className="mt-3 pt-3 border-t border-hairline">
+            <p className="text-[11px] text-faint mb-2">Alert sound</p>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(NOTIFICATION_SOUNDS).map(([key, s]) => (
+                <button
+                  key={key}
+                  onClick={() => { save({ ...settings, sound: key }); playNotificationSound(key); }}
+                  className={`text-[12px] px-3 py-1.5 rounded-full border transition-all ${
+                    settings.sound === key ? "bg-brass text-ink border-brass font-semibold" : "border-hairline text-dim"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => showNewLeadNotification({ name: "Test Lead", phone: "012-345 6789" }, "Preview")}
+              className="mt-3 w-full px-3 py-2 text-[12px] font-semibold bg-brass-15 text-brass rounded-lg"
+            >
+              Send test notification
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, setAgents, role, setRole, currentAgentId, setCurrentAgentId, notify, onLogout }) {
   const isAdmin = role === "admin";
   const [newWebsite, setNewWebsite] = useState({ name: "" });
@@ -1131,6 +1272,9 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
     return (
       <div className="max-w-md mx-auto py-6">
         {RoleToggle}
+        <div className="mb-6">
+          <NotificationSettings />
+        </div>
         <section>
           <SectionHeader
             icon={Building2}
@@ -1202,6 +1346,8 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
   return (
     <div className="max-w-2xl mx-auto space-y-7">
       {RoleToggle}
+
+      <NotificationSettings />
 
       {/* Websites */}
       <section>
@@ -1454,6 +1600,8 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
 export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [websites, setWebsites] = useState([]);
+  const websitesRef = useRef(websites);
+  useEffect(() => { websitesRef.current = websites; }, [websites]);
   const [statuses, setStatuses] = useState([]);
   const [agents, setAgents] = useState([]);
   const [leads, setLeads] = useState([]);
@@ -1572,7 +1720,13 @@ export default function App() {
     const channel = supabase
       .channel("leads-realtime")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "leads" }, (payload) => {
-        setLeads((prev) => (prev.some((l) => l.id === payload.new.id) ? prev : [toCamel(payload.new), ...prev]));
+        setLeads((prev) => {
+          if (prev.some((l) => l.id === payload.new.id)) return prev;
+          const newLead = toCamel(payload.new);
+          const site = websitesRef.current.find((w) => w.id === newLead.websiteId);
+          showNewLeadNotification(newLead, site?.name);
+          return [newLead, ...prev];
+        });
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads" }, (payload) => {
         setLeads((prev) => prev.map((l) => (l.id === payload.new.id ? toCamel(payload.new) : l)));
