@@ -2213,16 +2213,16 @@ export default function App() {
 
       {viaDashboardTile && Object.keys(pendingEdits).length > 0 && (
         <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-          <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-xl p-4 flex items-center gap-3 pointer-events-auto">
+          <div className="w-full max-w-sm bg-[#221E36] rounded-2xl shadow-2xl p-4 flex items-center gap-3 pointer-events-auto" style={{ boxShadow: "0 10px 40px rgba(0,0,0,0.35)" }}>
             <div className="flex-1 min-w-0">
-              <p className="text-cream font-semibold text-[13px] leading-tight">Unsaved changes</p>
-              <p className="text-[11px] text-faint leading-tight mt-0.5">
+              <p className="text-white font-semibold text-[13px] leading-tight">Unsaved changes</p>
+              <p className="text-[11px] leading-tight mt-0.5" style={{ color: "#B8B4D9" }}>
                 {Object.keys(pendingEdits).length} lead{Object.keys(pendingEdits).length > 1 ? "s" : ""} changed — keep editing or save now.
               </p>
             </div>
             <button
               onClick={() => setPendingEdits({})}
-              className="px-3 py-2 text-[12px] font-semibold bg-ink text-dim border border-hairline rounded-lg hover:brightness-95 transition-all shrink-0"
+              className="px-3 py-2 text-[12px] font-semibold text-white/80 border border-white/25 rounded-lg hover:bg-white/10 transition-all shrink-0"
             >
               Discard
             </button>
