@@ -1488,9 +1488,13 @@ export default function App() {
     setLoaded(true); // nothing to wait on before showing the login screen
   }, []);
 
-  const loadAllData = async () => {
-    setDataStatus("loading");
-    setDataError("");
+  const CACHE_KEY = "leadledger_cache";
+
+  const loadAllData = async (isBackgroundRefresh = false) => {
+    if (!isBackgroundRefresh) {
+      setDataStatus("loading");
+      setDataError("");
+    }
     try {
       const [ws, sts, ags, lds, notes] = await Promise.all([
         api("/websites"),
@@ -1499,20 +1503,53 @@ export default function App() {
         api("/leads"),
         api("/legacy-notes"),
       ]);
-      setWebsites(ws.map(toCamel));
-      setStatuses(sts.map(toCamel));
-      setAgents(ags.map(toCamel));
-      setLeads(lds.map(toCamel));
-      setLegacyNotes(notes.map(toCamel));
+      const camelWs = ws.map(toCamel);
+      const camelSts = sts.map(toCamel);
+      const camelAgs = ags.map(toCamel);
+      const camelLds = lds.map(toCamel);
+      const camelNotes = notes.map(toCamel);
+      setWebsites(camelWs);
+      setStatuses(camelSts);
+      setAgents(camelAgs);
+      setLeads(camelLds);
+      setLegacyNotes(camelNotes);
       setDataStatus("ready");
+      // Cache so the NEXT time this device opens the app, it can show this
+      // data instantly instead of showing a loading screen while it waits
+      // on the server again.
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          websites: camelWs, statuses: camelSts, agents: camelAgs, leads: camelLds, legacyNotes: camelNotes,
+        }));
+      } catch { /* storage full or unavailable — safe to skip caching */ }
     } catch (e) {
-      setDataStatus("error");
-      setDataError(e.message || "Couldn't reach the server");
+      if (!isBackgroundRefresh) {
+        setDataStatus("error");
+        setDataError(e.message || "Couldn't reach the server");
+      }
+      // If this was a silent background refresh, just leave whatever's
+      // already on screen (cached or previously loaded) — no error shown.
     }
   };
 
   useEffect(() => {
     if (!loggedIn) return;
+    // Show cached data instantly if we have it from last time, then quietly
+    // refresh in the background — so the app never sits on a loading screen
+    // just because the server is slow to respond.
+    try {
+      const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (cached) {
+        setWebsites(cached.websites || []);
+        setStatuses(cached.statuses || []);
+        setAgents(cached.agents || []);
+        setLeads(cached.leads || []);
+        setLegacyNotes(cached.legacyNotes || []);
+        setDataStatus("ready");
+        loadAllData(true); // silent refresh
+        return;
+      }
+    } catch { /* corrupted cache — fall through to a normal load */ }
     loadAllData();
   }, [loggedIn]);
 
@@ -1711,7 +1748,7 @@ export default function App() {
           <h2 className="text-cream font-semibold text-[16px] mb-1">Couldn't load your data</h2>
           <p className="text-dim text-[13px] mb-1">This did <strong>not</strong> delete or change anything — your real data is still safe in the database. The app just couldn't reach the server this time.</p>
           <p className="text-faint text-[11px] mb-4">{dataError}</p>
-          <button onClick={loadAllData} className="w-full px-4 py-2.5 text-sm font-semibold bg-brass text-ink rounded-lg hover:brightness-110 transition-all">
+          <button onClick={() => loadAllData()} className="w-full px-4 py-2.5 text-sm font-semibold bg-brass text-ink rounded-lg hover:brightness-110 transition-all">
             Try again
           </button>
           <p className="text-faint text-[10px] mt-3">If your backend has been idle a while, it can take 30–60 seconds to wake up — wait a moment and tap "Try again."</p>
