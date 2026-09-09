@@ -2212,33 +2212,33 @@ export default function App() {
       {toast && <Toast text={toast} onDone={() => setToast(null)} />}
 
       {viaDashboardTile && Object.keys(pendingEdits).length > 0 && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-xl p-5">
-            <h3 className="text-cream font-semibold text-[15px] mb-1">Save changes?</h3>
-            <p className="text-[12px] text-faint mb-4">
-              You've changed {Object.keys(pendingEdits).length} lead{Object.keys(pendingEdits).length > 1 ? "s" : ""} here. Nothing is saved yet.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPendingEdits({})}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-ink text-dim border border-hairline rounded-lg hover:brightness-95 transition-all"
-              >
-                Discard
-              </button>
-              <button
-                onClick={async () => {
-                  const entries = Object.entries(pendingEdits);
-                  for (const [id, fields] of entries) {
-                    await patchLead(id, fields);
-                  }
-                  setPendingEdits({});
-                  notify("Changes saved");
-                }}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-sage text-ink rounded-lg hover:brightness-110 transition-all"
-              >
-                Save changes
-              </button>
+        <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+          <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-xl p-4 flex items-center gap-3 pointer-events-auto">
+            <div className="flex-1 min-w-0">
+              <p className="text-cream font-semibold text-[13px] leading-tight">Unsaved changes</p>
+              <p className="text-[11px] text-faint leading-tight mt-0.5">
+                {Object.keys(pendingEdits).length} lead{Object.keys(pendingEdits).length > 1 ? "s" : ""} changed — keep editing or save now.
+              </p>
             </div>
+            <button
+              onClick={() => setPendingEdits({})}
+              className="px-3 py-2 text-[12px] font-semibold bg-ink text-dim border border-hairline rounded-lg hover:brightness-95 transition-all shrink-0"
+            >
+              Discard
+            </button>
+            <button
+              onClick={async () => {
+                const entries = Object.entries(pendingEdits);
+                for (const [id, fields] of entries) {
+                  await patchLead(id, fields);
+                }
+                setPendingEdits({});
+                notify("Changes saved");
+              }}
+              className="px-3 py-2 text-[12px] font-semibold bg-sage text-ink rounded-lg hover:brightness-110 transition-all shrink-0"
+            >
+              Save
+            </button>
           </div>
         </div>
       )}
