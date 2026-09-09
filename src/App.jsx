@@ -429,7 +429,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
             <div className="flex-1 min-w-0">
               {/* Phone */}
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-[11px] font-mono font-semibold text-brass shrink-0 w-4 text-right -ml-1.5">{index}.</span>
+                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-brass shrink-0 -ml-1.5" style={{ background: "#EDE4FE" }}>{index}</span>
                 <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCEAFE" }}>
                   <Phone size={11} className="text-sky" strokeWidth={2.6} />
                 </span>
@@ -448,7 +448,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               </div>
 
               {/* Loan type / time */}
-              <div className={`flex items-start gap-1.5 font-bold text-[14px] min-w-0 break-words mt-1 ${editedCls("loanType")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
+              <div className={`flex items-start gap-1.5 font-bold text-[15px] min-w-0 break-words mt-1 ${editedCls("loanType")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
                 <span className="w-4 shrink-0 -ml-1.5" />
                 <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
                   <FileText size={11} className="text-amber" strokeWidth={2.6} />
@@ -464,12 +464,12 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               </div>
 
               {/* Job title · location */}
-              <div className={`flex items-start gap-1.5 text-[13.5px] font-medium mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
+              <div className={`flex items-start gap-1.5 text-[14px] font-medium mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#5F5B80" }}>
                 <span className="w-4 shrink-0 -ml-1.5" />
                 <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
                   <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
                 </span>
-                <span>{lead.jobTitle || "—"} <span className="text-[10px]">({lead.location || "—"})</span></span>
+                <span>{lead.jobTitle || "—"} <span className="text-[11px]">({lead.location || "—"})</span></span>
               </div>
 
               {/* Net salary → loan amount */}
@@ -479,11 +479,11 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                   <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
                 </span>
                 <span className="flex flex-col leading-none">
-                  <span className="text-[15px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.netSalary)}</span>
+                  <span className="text-[18px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.netSalary)}</span>
                   {lead.salaryThrough && <span className="text-[9px] text-faint mt-0.5">({lead.salaryThrough})</span>}
                 </span>
                 <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
-                <span className="text-[19px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
+                <span className="text-[18px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
               </div>
             </div>
 
@@ -2328,43 +2328,42 @@ export default function App() {
 
         {tab === "leads" && (
           <>
-            <div className="bg-ink2 border border-hairline rounded-xl p-2 shadow-sm" style={{ marginBottom: "10px" }}>
-              <div className="flex items-center justify-between mb-1.5 px-0.5">
-                <span className="text-[9px] font-bold uppercase tracking-wider text-faint">Status overview</span>
+            <div className="bg-ink2 border border-hairline rounded-2xl p-3.5 shadow-sm" style={{ marginBottom: "10px" }}>
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
+                <span className="flex items-center gap-1.5 text-[12px] font-bold text-cream">
+                  <Calendar size={13} className="text-brass" /> Today's Leads
+                </span>
                 {statusFilter && (
-                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="btn3d btn3d-default text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full">
+                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full border border-hairline">
                     Back
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-3 gap-2">
                 {statusCounts.filter((s) => {
                   const n = s.name.trim().toLowerCase();
                   return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
                 }).map((s) => {
                   const active = statusFilter === s.id;
-                  const txt = contrastText(s.color);
+                  const n = s.name.trim().toLowerCase();
+                  const TileIcon = n === "contacted" ? Users : (n === "appointment" ? Calendar : Plus);
                   return (
                     <button
                       key={s.id}
                       onClick={() => { setStatusFilter(active ? null : s.id); setViaDashboardTile(!active); }}
-                      className="relative h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
+                      className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all active:scale-95"
                       style={{
-                        backgroundImage: `linear-gradient(165deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(${s.color}, ${s.color})`,
-                        boxShadow: active
-                          ? `0 0 0 2px #FFFFFF, 0 0 0 4px ${s.color}, 0 3px 0 ${darkenHex(s.color, 0.3)}`
-                          : `0 3px 0 ${darkenHex(s.color, 0.3)}`,
+                        background: s.color + "1A",
+                        boxShadow: active ? `0 0 0 2px ${s.color}` : "none",
                       }}
                     >
-                      {active && (
-                        <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center shadow">
-                          <Check size={7} strokeWidth={3.5} style={{ color: s.color }} />
-                        </span>
-                      )}
-                      <span className="text-[20px] font-extrabold leading-none tracking-tight" style={{ color: txt, textShadow: txt === "#FFFFFF" ? "0 1px 2px rgba(0,0,0,0.2)" : "none" }}>
+                      <span className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: s.color + "30" }}>
+                        <TileIcon size={14} style={{ color: s.color }} strokeWidth={2.4} />
+                      </span>
+                      <span className="text-[19px] font-extrabold leading-none" style={{ color: s.color }}>
                         {s.count}
                       </span>
-                      <span className="text-[9px] font-bold uppercase tracking-wide text-center px-1 leading-none" style={{ color: txt, opacity: 0.9 }}>
+                      <span className="text-[9.5px] font-semibold text-center px-1 leading-none text-dim">
                         {s.name}
                       </span>
                     </button>
