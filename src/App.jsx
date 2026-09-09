@@ -246,11 +246,11 @@ function shortAgentName(name) {
 }
 function phoneSizeCls(phone) {
   const len = (phone || "").length;
-  if (len > 34) return "text-[10.5px]";
-  if (len > 26) return "text-[11.5px]";
-  if (len > 20) return "text-[12.5px]";
-  if (len > 15) return "text-[13.5px]";
-  return "text-[15px]";
+  if (len > 34) return "text-[13px]";
+  if (len > 26) return "text-[14.5px]";
+  if (len > 20) return "text-[16px]";
+  if (len > 15) return "text-[17.5px]";
+  return "text-[19px]";
 }
 function remarkSizeCls(remark) {
   const len = (remark || "").length;
@@ -382,7 +382,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCEAFE" }}>
                 <Phone size={11} className="text-sky" strokeWidth={2.6} />
               </span>
-              <div style={{ color: "#000000" }} className={`font-mono font-bold underline underline-offset-2 ${phoneSizeCls(lead.phone)} min-w-0 ${(lead.phone || "").includes("/") ? "break-words" : "whitespace-nowrap"} ${editedCls("phone")}`}>
+              <div style={{ color: "#000000" }} className={`font-bold ${phoneSizeCls(lead.phone)} min-w-0 ${(lead.phone || "").includes("/") ? "break-words" : "whitespace-nowrap"} ${editedCls("phone")}`}>
                 {lead.phone || "—"}
               </div>
               <button
@@ -408,7 +408,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
 
           {/* Row 2 — loan type / time — agent assign */}
           <div className="flex items-start justify-between gap-2 mt-1">
-            <div className={`flex items-start gap-1.5 font-semibold text-[12.5px] min-w-0 flex-1 break-words ${editedCls("loanType")}`} style={{ fontFamily: "'Times New Roman', Times, serif", color: "#000000" }}>
+            <div className={`flex items-start gap-1.5 font-bold text-[15px] min-w-0 flex-1 break-words ${editedCls("loanType")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
               <span className="w-4 shrink-0 -ml-1.5" />
               <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
                 <FileText size={11} className="text-amber" strokeWidth={2.6} />
@@ -430,7 +430,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 <select
                   value={lead.assignedAgentId}
                   onChange={(e) => onAssign(lead.id, e.target.value)}
-                  className="text-[11px] font-semibold rounded-full pl-7 pr-3 py-1.5 border border-hairline bg-ink2 text-dim shadow-sm focus:outline-none focus-border-brass cursor-pointer appearance-none"
+                  className="text-[12px] font-semibold rounded-full pl-7 pr-3 py-1.5 border border-hairline bg-ink2 text-dim shadow-sm focus:outline-none focus-border-brass cursor-pointer appearance-none"
                 >
                   {agents.filter((a) => a.active !== false || a.id === lead.assignedAgentId).map((a) => (
                     <option key={a.id} value={a.id} style={{ color: "#000" }}>{shortAgentName(a.name)}{a.active === false ? " (off)" : ""}</option>
@@ -486,7 +486,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
           )}
 
           {/* Row 3 — job title · location */}
-          <div className={`flex items-start gap-1.5 text-[12.5px] mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Times New Roman', Times, serif", color: "#000000" }}>
+          <div className={`flex items-start gap-1.5 text-[13.5px] font-medium mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
             <span className="w-4 shrink-0 -ml-1.5" />
             <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
               <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
@@ -502,11 +502,11 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
               </span>
               <span className="flex flex-col leading-none">
-                <span className="text-[13px] font-bold">{fmtNum(lead.netSalary)}</span>
-                {lead.salaryThrough && <span className="text-[8px] text-faint mt-0.5">({lead.salaryThrough})</span>}
+                <span className="text-[15px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.netSalary)}</span>
+                {lead.salaryThrough && <span className="text-[9px] text-faint mt-0.5">({lead.salaryThrough})</span>}
               </span>
               <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
-              <span className="text-[17px] font-bold">{fmtNum(lead.loanAmount)}</span>
+              <span className="text-[19px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
             </div>
             <div className="relative inline-flex shrink-0">
               {status.animated && (
@@ -519,7 +519,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 value={lead.statusId}
                 onChange={(e) => onStatusChange(lead.id, e.target.value)}
                 style={{ color: status.color, background: status.color + "17", width: 100, maxWidth: 100 }}
-                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border-0 focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
+                className={`relative flex items-center justify-center text-center text-[12px] font-semibold rounded-full pl-5 pr-6 py-1.5 border-0 focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
               >
                 {!statuses.some((s) => s.id === lead.statusId) && (
                   <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
@@ -624,7 +624,7 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+    <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
       <div className="w-full max-w-xs bg-ink2 border border-hairline rounded-2xl shadow-sm p-6">
         <div className="flex flex-col items-center mb-5">
           <div
@@ -2006,7 +2006,7 @@ export default function App() {
 
   if (dataStatus === "loading" || dataStatus === "idle") {
     return (
-      <div className="min-h-screen bg-ink flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+      <div className="min-h-screen bg-ink flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
         <Loader2 className="animate-spin text-brass" size={28} />
         <p className="text-dim text-sm">Loading your data…</p>
       </div>
@@ -2015,7 +2015,7 @@ export default function App() {
 
   if (dataStatus === "error") {
     return (
-      <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+      <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
         <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-sm p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-rust/15 flex items-center justify-center mx-auto mb-3">
             <X size={22} className="text-rust" />
@@ -2033,9 +2033,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-ink" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+    <div className="min-h-screen bg-ink" style={{ fontFamily: "'Poppins', sans-serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500;600;700;800&display=swap');
         select option { background: #FFFFFF; color: #1F2530; }
         select {
           -webkit-tap-highlight-color: transparent;
@@ -2150,7 +2150,7 @@ export default function App() {
             >
               <NotebookText size={20} className="text-white" strokeWidth={2.3} />
             </div>
-            <h1 className="text-white font-semibold text-[15px] hidden md:block" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
+            <h1 className="text-white font-semibold text-[15px] hidden md:block" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Lead
             </h1>
           </button>
@@ -2294,42 +2294,43 @@ export default function App() {
 
         {tab === "leads" && (
           <>
-            <div className="bg-ink2 border border-hairline rounded-2xl p-3.5 shadow-sm" style={{ marginBottom: "10px" }}>
-              <div className="flex items-center justify-between mb-2.5 px-0.5">
-                <span className="flex items-center gap-1.5 text-[12px] font-bold text-cream">
-                  <Calendar size={13} className="text-brass" /> Today's Leads
-                </span>
+            <div className="bg-ink2 border border-hairline rounded-xl p-2 shadow-sm" style={{ marginBottom: "10px" }}>
+              <div className="flex items-center justify-between mb-1.5 px-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-faint">Status overview</span>
                 {statusFilter && (
-                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full border border-hairline">
+                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="btn3d btn3d-default text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full">
                     Back
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {statusCounts.filter((s) => {
                   const n = s.name.trim().toLowerCase();
                   return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
                 }).map((s) => {
                   const active = statusFilter === s.id;
-                  const n = s.name.trim().toLowerCase();
-                  const TileIcon = n === "contacted" ? Users : (n === "appointment" ? Calendar : Plus);
+                  const txt = contrastText(s.color);
                   return (
                     <button
                       key={s.id}
                       onClick={() => { setStatusFilter(active ? null : s.id); setViaDashboardTile(!active); }}
-                      className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all active:scale-95"
+                      className="relative h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
                       style={{
-                        background: s.color + "1A",
-                        boxShadow: active ? `0 0 0 2px ${s.color}` : "none",
+                        backgroundImage: `linear-gradient(165deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(${s.color}, ${s.color})`,
+                        boxShadow: active
+                          ? `0 0 0 2px #FFFFFF, 0 0 0 4px ${s.color}, 0 3px 0 ${darkenHex(s.color, 0.3)}`
+                          : `0 3px 0 ${darkenHex(s.color, 0.3)}`,
                       }}
                     >
-                      <span className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: s.color + "30" }}>
-                        <TileIcon size={14} style={{ color: s.color }} strokeWidth={2.4} />
-                      </span>
-                      <span className="text-[19px] font-extrabold leading-none" style={{ color: s.color }}>
+                      {active && (
+                        <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center shadow">
+                          <Check size={7} strokeWidth={3.5} style={{ color: s.color }} />
+                        </span>
+                      )}
+                      <span className="text-[20px] font-extrabold leading-none tracking-tight" style={{ color: txt, textShadow: txt === "#FFFFFF" ? "0 1px 2px rgba(0,0,0,0.2)" : "none" }}>
                         {s.count}
                       </span>
-                      <span className="text-[9.5px] font-semibold text-center px-1 leading-none text-dim">
+                      <span className="text-[9px] font-bold uppercase tracking-wide text-center px-1 leading-none" style={{ color: txt, opacity: 0.9 }}>
                         {s.name}
                       </span>
                     </button>
