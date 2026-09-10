@@ -51,7 +51,6 @@ function toCamel(obj) {
 }
 
 const NOTIFICATION_SOUNDS = {
-  none: { label: "None" },
   chime: { label: "Chime", notes: [[880, 0.12], [1318.5, 0.18]] },
   ding: { label: "Ding", notes: [[1046.5, 0.25]] },
   double: { label: "Double beep", notes: [[700, 0.09], [0, 0.05], [700, 0.09]] },
@@ -1010,8 +1009,12 @@ function AddRow({ children, onAdd, disabled }) {
   );
 }
 
-function NotificationSettings() {
-  const [settings, setSettings] = useState(getNotifSettings());
+function NotificationSettings({ role }) {
+  const isAgent = role !== "admin";
+  const [settings, setSettings] = useState(() => {
+    const s = getNotifSettings();
+    return isAgent ? { ...s, enabled: true } : s; // agents can't opt out
+  });
   const [permission, setPermission] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "unsupported"
   );
@@ -1021,7 +1024,17 @@ function NotificationSettings() {
     localStorage.setItem("leadledger_notif_settings", JSON.stringify(next));
   };
 
+  // Agents are required to stay opted in — if their stored preference was
+  // somehow off (e.g. set before this restriction existed), correct it
+  // silently rather than leaving them un-notified.
+  useEffect(() => {
+    if (isAgent && !getNotifSettings().enabled) {
+      save({ ...getNotifSettings(), enabled: true });
+    }
+  }, []);
+
   const toggleEnabled = async () => {
+    if (isAgent) return; // locked — admin requirement
     if (!settings.enabled) {
       if (typeof Notification !== "undefined" && Notification.permission === "default") {
         const result = await Notification.requestPermission();
@@ -1030,6 +1043,13 @@ function NotificationSettings() {
       save({ ...settings, enabled: true });
     } else {
       save({ ...settings, enabled: false });
+    }
+  };
+
+  const requestPermissionOnly = async () => {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      const result = await Notification.requestPermission();
+      setPermission(result);
     }
   };
 
@@ -1045,8 +1065,10 @@ function NotificationSettings() {
           <span className="text-[13px] font-medium text-cream">Notify me about new leads</span>
           <button
             onClick={toggleEnabled}
-            className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200"
-            style={{ background: settings.enabled ? "#34C759" : "#D1D5DB", width: 36, height: 22 }}
+            disabled={isAgent}
+            title={isAgent ? "Your admin requires this to stay on" : undefined}
+            className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200 disabled:cursor-not-allowed"
+            style={{ background: settings.enabled ? "#34C759" : "#D1D5DB", width: 36, height: 22, opacity: isAgent ? 0.6 : 1 }}
           >
             <span
               className="absolute top-0.5 left-0.5 rounded-full bg-white shadow transition-transform duration-200"
@@ -1054,11 +1076,23 @@ function NotificationSettings() {
             />
           </button>
         </div>
+        {isAgent && (
+          <p className="text-[10px] text-faint mt-1.5">Your admin requires this to stay on — you can still choose your own alert sound below.</p>
+        )}
 
         {settings.enabled && permission === "denied" && (
           <p className="text-[11px] text-rust mt-2">
             Popup notifications are blocked in your browser/phone settings — you'll still hear the sound, but won't see a popup. Check your browser's site permissions to allow it.
           </p>
+        )}
+
+        {isAgent && settings.enabled && permission === "default" && (
+          <button
+            onClick={requestPermissionOnly}
+            className="mt-2 w-full px-3 py-2 text-[12px] font-semibold bg-brass-15 text-brass rounded-lg"
+          >
+            Allow notification popups
+          </button>
         )}
 
         {settings.enabled && (
@@ -1187,7 +1221,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
       <div className="max-w-md mx-auto py-6">
         {RoleToggle}
         <div className="mb-6">
-          <NotificationSettings />
+          <NotificationSettings role={role} />
         </div>
         <section>
           <SectionHeader
@@ -1261,7 +1295,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
     <div className="max-w-2xl mx-auto space-y-7">
       {RoleToggle}
 
-      <NotificationSettings />
+      <NotificationSettings role={role} />
 
       <section>
         <SectionHeader
@@ -1325,7 +1359,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
       </section>
 
       <section>
-        <SectionHeader icon={Tag} title="Status droplist" desc="Shown on every lead card and the dashboard tiles, in this order. Tap the inbox icon to choose which status new incoming leads get automatically." />
+        <SectionHeader icon={Tag} title="Status droplist" desc="Shown on every lead card, in this order. The inbox icon picks the default for new leads. The 1st/2nd/3rd dropdown picks what shows on the dashboard, and in which position." />
         <div className="bg-ink2 border border-hairline rounded-2xl shadow-sm overflow-hidden">
           {dStatuses.map((s, si) => (
             <div key={s.id} className={si > 0 ? "border-t border-hairline" : ""}>
@@ -1353,6 +1387,24 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
                 >
                   <Inbox size={13} fill={s.isDefault ? "currentColor" : "none"} fillOpacity={s.isDefault ? 0.15 : 0} />
                 </button>
+                <select
+                  value={s.dashboardOrder || ""}
+                  onChange={(e) => {
+                    const pos = e.target.value ? Number(e.target.value) : null;
+                    setDStatuses(dStatuses.map((x) => {
+                      if (x.id === s.id) return { ...x, dashboardOrder: pos };
+                      if (pos && x.dashboardOrder === pos) return { ...x, dashboardOrder: null }; // bump whoever had this spot
+                      return x;
+                    }));
+                  }}
+                  title="Position on dashboard"
+                  className={`text-[10px] font-semibold rounded-md px-1.5 py-1 border shrink-0 cursor-pointer ${s.dashboardOrder ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
+                >
+                  <option value="">Dashboard: off</option>
+                  <option value="1">1st</option>
+                  <option value="2">2nd</option>
+                  <option value="3">3rd</option>
+                </select>
                 <button
                   onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
                   title={s.animated ? "Animation on" : "Animation off"}
@@ -1423,7 +1475,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
             disabled={!newStatus.name}
             onAdd={() => {
               if (!newStatus.name) return;
-              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false, subOptions: [], isDefault: false }]);
+              setDStatuses([...dStatuses, { id: uid(), name: newStatus.name, color: STATUS_SWATCHES[dStatuses.length % STATUS_SWATCHES.length], animated: false, subOptions: [], isDefault: false, dashboardOrder: null }]);
               setNewStatus({ name: "" });
             }}
           >
@@ -2111,10 +2163,15 @@ export default function App() {
                 )}
               </div>
               <div className="grid grid-cols-3 gap-1.5">
-                {statusCounts.filter((s) => {
-                  const n = s.name.trim().toLowerCase();
-                  return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
-                }).map((s) => {
+                {(() => {
+                  const positioned = statusCounts.filter((s) => s.dashboardOrder).sort((a, b) => a.dashboardOrder - b.dashboardOrder);
+                  if (positioned.length > 0) return positioned;
+                  // Fallback for setups that haven't configured this yet.
+                  return statusCounts.filter((s) => {
+                    const n = s.name.trim().toLowerCase();
+                    return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
+                  });
+                })().map((s) => {
                   const active = statusFilter === s.id;
                   const txt = contrastText(s.color);
                   return (
