@@ -6,24 +6,8 @@ import {
   FileText, Briefcase, Wallet, Home
 } from "lucide-react";
 
-/* ------------------------------------------------------------------ */
-/*  Design tokens — "Ledger Desk"                                      */
-/*  Deep ink surfaces, brass/amber accent (loan-office ledger feel),   */
-/*  condensed display type for headers, monospace for figures.         */
-/* ------------------------------------------------------------------ */
-const INK = "#0F1620";
-const INK_2 = "#161F2C";
-const INK_3 = "#1D2836";
-const HAIRLINE = "#2A3644";
-const PAPER = "#EDE7D9";
-const PAPER_DIM = "#A9A290";
-const BRASS = "#4F46E5";
-const BRASS_SOFT = "rgba(79,70,229,0.14)";
-
 const STATUS_SWATCHES = ["#059669", "#2563EB", "#D97706", "#DC2626", "#7C3AED", "#0891B2"];
 
-// ⚠️ Set this to your deployed backend's URL (from Render, step 4 of the
-// backend README) — e.g. "https://lead-ledger-backend-xxxx.onrender.com/api"
 const API_BASE = "https://lead-ledger-backend.onrender.com/api";
 
 async function api(path, options = {}) {
@@ -42,14 +26,6 @@ async function api(path, options = {}) {
 
 import { createClient } from "@supabase/supabase-js";
 
-// Safe to expose in the browser — this is the public "anon" key, not the
-// service_role key (that one stays backend-only). Real data access is
-// still controlled by your backend API; this connection is only used to
-// listen for live changes on the leads table.
-console.log(
-  "[Realtime] Supabase URL set:", !!import.meta.env.VITE_SUPABASE_URL,
-  "| anon key set:", !!import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
   import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -74,11 +50,6 @@ function toCamel(obj) {
   return out;
 }
 
-// Alert tones generated directly with the Web Audio API — no sound files
-// needed. A website can't hook into the phone's actual system notification
-// sound picker (that's only possible in a real native Android app), so this
-// is the closest practical equivalent: a distinct short tone that plays
-// alongside the notification popup while the app is open.
 const NOTIFICATION_SOUNDS = {
   none: { label: "None" },
   chime: { label: "Chime", notes: [[880, 0.12], [1318.5, 0.18]] },
@@ -136,10 +107,6 @@ function showNewLeadNotification(lead, websiteName) {
   }
 }
 
-// Puts a small unread-count badge on the home screen app icon — same as a
-// native app's notification badge. Supported on Android/Chrome (including
-// installed PWAs/APKs); silently does nothing on browsers that don't
-// support it (e.g. desktop Safari, iOS Safari).
 function bumpAppBadge() {
   if (!("setAppBadge" in navigator)) return;
   try {
@@ -157,9 +124,6 @@ function clearAppBadge() {
 }
 
 function nowInMalaysia() {
-  // Reads "wall clock" Malaysia time (UTC+8) regardless of what timezone
-  // the device itself is set to, so every agent's app agrees on what
-  // "today" is even if someone's phone is misconfigured.
   return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
 }
 function todayKey() {
@@ -187,10 +151,6 @@ function nowTime() {
 }
 function fmtTime(value) {
   if (!value) return "";
-  // Leads created via the CloudMailin webhook carry a real ISO timestamp;
-  // leads added by hand in this UI already carry a pre-formatted "H:MM AM/PM"
-  // string. Handle both, and always display in Malaysia time regardless of
-  // the viewing device's own timezone setting.
   const parsed = new Date(value);
   if (isNaN(parsed.getTime())) return value;
   const d = new Date(parsed.toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
@@ -208,12 +168,6 @@ function dateSortKey(k) {
 function dayName(k) {
   const [dd, mm, yyyy] = k.split("/").map(Number);
   return new Date(yyyy, mm - 1, dd).toLocaleDateString("en-GB", { weekday: "long" });
-}
-function fmtMoney(n) {
-  if (n === "" || n === null || n === undefined) return "—";
-  const num = Number(n);
-  if (Number.isNaN(num)) return n;
-  return "RM " + num.toLocaleString("en-MY");
 }
 function fmtNum(n) {
   if (n === "" || n === null || n === undefined) return "—";
@@ -246,62 +200,13 @@ function shortAgentName(name) {
 }
 function phoneSizeCls(phone) {
   const len = (phone || "").length;
-  if (len > 34) return "text-[13px]";
-  if (len > 26) return "text-[14.5px]";
-  if (len > 20) return "text-[16px]";
-  if (len > 15) return "text-[17.5px]";
-  return "text-[19px]";
-}
-function remarkSizeCls(remark) {
-  const len = (remark || "").length;
-  if (len > 90) return "text-[10px]";
-  if (len > 60) return "text-[11px]";
-  if (len > 35) return "text-[12px]";
-  return "text-[13px]";
-}
-function loanTypeSizeCls(text) {
-  const len = (text || "").length;
-  if (len > 28) return "text-[11.5px]";
-  if (len > 20) return "text-[13px]";
-  if (len > 14) return "text-[14px]";
+  if (len > 34) return "text-[10.5px]";
+  if (len > 26) return "text-[11.5px]";
+  if (len > 20) return "text-[12.5px]";
+  if (len > 15) return "text-[13.5px]";
   return "text-[15px]";
 }
 
-/* ------------------------------------------------------------------ */
-/*  Tiny lead-extraction heuristic (stand-in for real inbox parsing)   */
-/* ------------------------------------------------------------------ */
-function extractLeadFromText(raw) {
-  const text = raw || "";
-  const phoneMatch = text.match(/(\+?6?0?1[0-9][\s-]?\d{3,4}[\s-]?\d{4})/);
-  const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
-  const salaryMatch = text.match(/(?:net\s*salary|salary|income)\D{0,6}(\d[\d,]{2,})/i);
-  const loanAmtMatch = text.match(/(?:loan amount|amount|loan)\D{0,6}(\d[\d,]{3,})/i);
-  const nameMatch = text.match(/(?:name)\s*[:\-]\s*([A-Za-z ,.'-]{2,40})/i);
-  const typeMatch = text.match(/(?:loan type|type)\s*[:\-]\s*([A-Za-z /-]{2,40})/i);
-  const locMatch = text.match(/(?:location|address|state|city)\s*[:\-]\s*([A-Za-z ,.'-]{2,40})/i);
-  const jobMatch = text.match(/(?:job title|occupation|position|job)\s*[:\-]\s*([A-Za-z ,.'-]{2,40})/i);
-
-  let guessedName = nameMatch ? nameMatch[1].trim() : "";
-  if (!guessedName) {
-    const firstLine = text.split("\n").map((l) => l.trim()).find((l) => l && !/@|http|\d{3,}/.test(l));
-    if (firstLine && firstLine.length < 40) guessedName = firstLine;
-  }
-
-  return {
-    loanType: typeMatch ? typeMatch[1].trim() : "",
-    phone: phoneMatch ? phoneMatch[1].trim() : "",
-    email: emailMatch ? emailMatch[0].trim() : "",
-    name: guessedName,
-    location: locMatch ? locMatch[1].trim() : "",
-    jobTitle: jobMatch ? jobMatch[1].trim() : "",
-    netSalary: salaryMatch ? salaryMatch[1].replace(/,/g, "") : "",
-    loanAmount: loanAmtMatch ? loanAmtMatch[1].replace(/,/g, "") : "",
-  };
-}
-
-/* ------------------------------------------------------------------ */
-/*  Small UI atoms                                                     */
-/* ------------------------------------------------------------------ */
 function IconBtn({ icon: Icon, label, onClick, tone = "default", disabled }) {
   const tones = {
     default: "text-slate btn3d-default",
@@ -347,61 +252,8 @@ function Toast({ text, onDone }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Lead Card                                                          */
-/* ------------------------------------------------------------------ */
-function StatusPicker({ value, statuses, onChange, animated, color }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const current = statuses.find((s) => s.id === value);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocClick = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
-  }, [open]);
-
-  return (
-    <div className="relative inline-flex shrink-0" ref={ref}>
-      {animated && (
-        <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-10">
-          <span className="status-shimmer-bar" style={{ color }} />
-        </span>
-      )}
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        style={{ color, background: color + "17" }}
-        className={`flex items-center gap-1 text-[12px] font-semibold rounded-full pl-2.5 pr-2 py-1.5 max-w-[140px] ${animated ? "status-glow-pulse" : ""}`}
-      >
-        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
-        <span className="truncate">{current ? current.name : "Unknown"}</span>
-        <ChevronDown size={11} className="shrink-0" strokeWidth={2.5} />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-30 bg-ink2 border border-hairline rounded-xl shadow-lg py-1 min-w-[140px] max-h-[60vh] overflow-y-auto">
-          {statuses.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => { onChange(s.id); setOpen(false); }}
-              className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-[12px] hover:bg-brass-15 ${s.id === value ? "font-semibold" : "text-cream"}`}
-              style={{ color: s.id === value ? s.color : undefined }}
-            >
-              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: s.color }} />
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId, onEdit, onStatusChange, onSubStatusChange, onAssign, onRemarkChange, onNudge, onDeleteRequest, notify }) {
   const status = statuses.find((s) => s.id === lead.statusId) || { id: lead.statusId, name: "Unknown", color: "#9CA3AF" };
-  const agent = agents.find((a) => a.id === lead.assignedAgentId);
   const editedCls = (f) => (lead.edited?.[f] ? "underline decoration-dotted decoration-brass underline-offset-4" : "");
   const [expanded, setExpanded] = useState(false);
   const [editingRemark, setEditingRemark] = useState(false);
@@ -425,70 +277,25 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
         <div className="flex-1 min-w-0">
 
           <div className="flex items-start justify-between gap-2">
-            {/* LEFT COLUMN */}
-            <div className="flex-1 min-w-0">
-              {/* Phone */}
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-brass shrink-0 -ml-1.5" style={{ background: "#EDE4FE" }}>{index}</span>
-                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCEAFE" }}>
-                  <Phone size={11} className="text-sky" strokeWidth={2.6} />
-                </span>
-                <div style={{ color: "#000000" }} className={`font-bold ${phoneSizeCls(lead.phone)} min-w-0 ${(lead.phone || "").includes("/") ? "break-words" : "whitespace-nowrap"} ${editedCls("phone")}`}>
-                  {lead.phone || "—"}
-                </div>
-                <button
-                  onClick={() => copy(lead.phone, "Phone")}
-                  disabled={!lead.phone}
-                  title="Copy phone"
-                  aria-label="Copy phone"
-                  className="text-slate hover-cream shrink-0 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Copy size={13} strokeWidth={2.2} />
-                </button>
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <span className="text-[11px] font-mono font-semibold text-brass shrink-0 w-4 text-right -ml-1.5">{index}.</span>
+              <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#DCEAFE" }}>
+                <Phone size={11} className="text-sky" strokeWidth={2.6} />
+              </span>
+              <div style={{ color: "#000000" }} className={`font-mono font-bold underline underline-offset-2 ${phoneSizeCls(lead.phone)} min-w-0 ${(lead.phone || "").includes("/") ? "break-words" : "whitespace-nowrap"} ${editedCls("phone")}`}>
+                {lead.phone || "—"}
               </div>
-
-              {/* Loan type / time */}
-              <div className={`flex items-start gap-1.5 font-bold text-[15px] min-w-0 break-words mt-1 ${editedCls("loanType")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#000000" }}>
-                <span className="w-4 shrink-0 -ml-1.5" />
-                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
-                  <FileText size={11} className="text-amber" strokeWidth={2.6} />
-                </span>
-                <span>
-                  {lead.loanType || (
-                    <span className="text-faint italic font-normal">
-                      {lead.source === "whatsapp" ? "Whatsapp" : lead.source === "email" ? "Email" : "Website"}
-                    </span>
-                  )}
-                  <span className="ml-2 font-mono text-[12px] font-normal text-dim whitespace-nowrap">{fmtTime(lead.receivedTime)}</span>
-                </span>
-              </div>
-
-              {/* Job title · location */}
-              <div className={`flex items-start gap-1.5 text-[14px] font-medium mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Poppins', sans-serif", color: "#5F5B80" }}>
-                <span className="w-4 shrink-0 -ml-1.5" />
-                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
-                  <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
-                </span>
-                <span>{lead.jobTitle || "—"} <span className="text-[13px]">({lead.location || "—"})</span></span>
-              </div>
-
-              {/* Net salary → loan amount */}
-              <div className="flex items-center gap-1.5 text-cream mt-0.5">
-                <span className="w-4 shrink-0 -ml-1.5" />
-                <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#EDE4FE" }}>
-                  <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
-                </span>
-                <span className="flex flex-col leading-none">
-                  <span className="text-[18px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.netSalary)}</span>
-                  {lead.salaryThrough && <span className="text-[9px] text-faint mt-0.5">({lead.salaryThrough})</span>}
-                </span>
-                <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
-                <span className="text-[18px] font-extrabold" style={{ color: "#000000" }}>{fmtNum(lead.loanAmount)}</span>
-              </div>
+              <button
+                onClick={() => copy(lead.phone, "Phone")}
+                disabled={!lead.phone}
+                title="Copy phone"
+                aria-label="Copy phone"
+                className="text-slate hover-cream shrink-0 p-1 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                <Copy size={13} strokeWidth={2.2} />
+              </button>
             </div>
-
-            {/* RIGHT COLUMN — info, status, agent, nudge, all stacked */}
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0 pb-0.5">
               <button
                 onClick={() => setExpanded((e) => !e)}
                 title={expanded ? "Hide info" : "Show name & email"}
@@ -496,29 +303,27 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
               >
                 <Info size={15} strokeWidth={2.6} />
               </button>
+              <IconBtn icon={MessageCircle} label="WhatsApp" tone="chat" onClick={chat} disabled={!lead.phone} />
+              <IconBtn icon={Phone} label="Call" tone="call" onClick={call} disabled={!lead.phone} />
+            </div>
+          </div>
 
-              <StatusPicker
-                value={lead.statusId}
-                statuses={statuses}
-                color={status.color}
-                animated={status.animated}
-                onChange={(statusId) => onStatusChange(lead.id, statusId)}
-              />
-
-              {status.subOptions && status.subOptions.length > 0 && (
-                <select
-                  value={lead.subStatus || ""}
-                  onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
-                  style={{ width: 140, maxWidth: 140 }}
-                  className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer truncate"
-                >
-                  <option value="">Others</option>
-                  {status.subOptions.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              )}
-
+          <div className="flex items-start justify-between gap-2 mt-1">
+            <div className={`flex items-start gap-1.5 font-semibold text-[12.5px] min-w-0 flex-1 break-words ${editedCls("loanType")}`} style={{ fontFamily: "'Times New Roman', Times, serif", color: "#000000" }}>
+              <span className="w-4 shrink-0 -ml-1.5" />
+              <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#FEF0C7" }}>
+                <FileText size={11} className="text-amber" strokeWidth={2.6} />
+              </span>
+              <span>
+                {lead.loanType || (
+                  <span className="text-faint italic font-normal">
+                    {lead.source === "whatsapp" ? "Whatsapp" : lead.source === "email" ? "Email" : "Website"}
+                  </span>
+                )}
+                <span className="ml-2 font-mono text-[12px] font-normal text-dim whitespace-nowrap">{fmtTime(lead.receivedTime)}</span>
+              </span>
+            </div>
+            <div className="relative shrink-0 flex flex-col items-end gap-1">
               <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-brass-15 flex items-center justify-center pointer-events-none">
                   <UserCog size={9} className="text-brass" strokeWidth={2.5} />
@@ -526,14 +331,13 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 <select
                   value={lead.assignedAgentId}
                   onChange={(e) => onAssign(lead.id, e.target.value)}
-                  className="text-[12px] font-semibold rounded-full pl-7 pr-3 py-1.5 border border-hairline bg-ink2 text-dim shadow-sm focus:outline-none focus-border-brass cursor-pointer appearance-none"
+                  className="text-[11px] font-semibold rounded-full pl-7 pr-3 py-1.5 border border-hairline bg-ink2 text-dim shadow-sm focus:outline-none focus-border-brass cursor-pointer appearance-none"
                 >
                   {agents.filter((a) => a.active !== false || a.id === lead.assignedAgentId).map((a) => (
                     <option key={a.id} value={a.id} style={{ color: "#000" }}>{shortAgentName(a.name)}{a.active === false ? " (off)" : ""}</option>
                   ))}
                 </select>
               </div>
-
               {lead.assignedAgentId && lead.assignedAgentId !== currentAgentId && (
                 <button
                   onClick={() => onNudge(lead.id, agents.find((a) => a.id === lead.assignedAgentId)?.name)}
@@ -550,7 +354,6 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
             </div>
           </div>
 
-          {/* Expandable info — name & email */}
           {expanded && (
             <div className="mt-1 pl-2 border-l-2 border-hairline space-y-1">
               <div className="flex items-center justify-between gap-2">
@@ -582,7 +385,67 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
             </div>
           )}
 
-          {/* Row 4 — remark, full width */}
+          <div className={`flex items-start gap-1.5 text-[12.5px] mt-0.5 break-words ${editedCls("meta")}`} style={{ fontFamily: "'Times New Roman', Times, serif", color: "#000000" }}>
+            <span className="w-4 shrink-0 -ml-1.5" />
+            <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ background: "#D1F5DF" }}>
+              <Briefcase size={11} className="text-leaf" strokeWidth={2.6} />
+            </span>
+            <span>{lead.jobTitle || "—"} <span className="text-[10px]">({lead.location || "—"})</span></span>
+          </div>
+
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <div className="flex items-center gap-1.5 text-cream">
+              <span className="w-4 shrink-0 -ml-1.5" />
+              <span className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: "#EDE4FE" }}>
+                <Wallet size={11} style={{ color: "#7C3AED" }} strokeWidth={2.6} />
+              </span>
+              <span className="flex flex-col leading-none">
+                <span className="text-[13px] font-bold">{fmtNum(lead.netSalary)}</span>
+                {lead.salaryThrough && <span className="text-[8px] text-faint mt-0.5">({lead.salaryThrough})</span>}
+              </span>
+              <span className="font-bold text-[24px] leading-none mx-1.5 text-brass flex items-center -translate-y-0.5">⟶</span>
+              <span className="text-[17px] font-bold">{fmtNum(lead.loanAmount)}</span>
+            </div>
+            <div className="relative inline-flex shrink-0">
+              {status.animated && (
+                <span className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-10">
+                  <span className="status-shimmer-bar" style={{ color: status.color }} />
+                </span>
+              )}
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full pointer-events-none" style={{ background: status.color }} />
+              <select
+                value={lead.statusId}
+                onChange={(e) => onStatusChange(lead.id, e.target.value)}
+                style={{ borderColor: status.color, color: contrastText(status.color), background: status.color, width: 100, maxWidth: 100 }}
+                className={`relative flex items-center justify-center text-center text-[11px] font-semibold rounded-full pl-5 pr-6 py-1.5 border shadow-sm focus:outline-none appearance-none cursor-pointer truncate ${status.animated ? "status-glow-pulse" : ""}`}
+              >
+                {!statuses.some((s) => s.id === lead.statusId) && (
+                  <option value={lead.statusId} style={{ color: "#000000" }}>Unknown (deleted)</option>
+                )}
+                {statuses.map((s) => (
+                  <option key={s.id} value={s.id} style={{ color: "#000000" }}>{s.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: status.color }} strokeWidth={2.5} />
+            </div>
+          </div>
+
+          {status.subOptions && status.subOptions.length > 0 && (
+            <div className="flex justify-end mt-1">
+              <select
+                value={lead.subStatus || ""}
+                onChange={(e) => onSubStatusChange(lead.id, e.target.value)}
+                style={{ width: 140, maxWidth: 140 }}
+                className="text-[10px] text-dim bg-ink border border-hairline rounded-full px-2.5 py-1 focus:outline-none appearance-none cursor-pointer truncate"
+              >
+                <option value="">Others</option>
+                {status.subOptions.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="mt-1.5">
             {editingRemark ? (
               <textarea
@@ -608,35 +471,12 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
             )}
           </div>
 
-          {/* Row 5 — full-width WhatsApp / Call buttons */}
-          <div className="flex gap-2 mt-2">
-            <button
-              onClick={chat}
-              disabled={!lead.phone}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[15px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: "#22C55E", fontFamily: "'Poppins', sans-serif" }}
-            >
-              <MessageCircle size={17} strokeWidth={2.4} /> WhatsApp
-            </button>
-            <button
-              onClick={call}
-              disabled={!lead.phone}
-              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-[15px] font-bold text-white shadow-sm active:scale-[0.98] transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: "#3B82F6", fontFamily: "'Poppins', sans-serif" }}
-            >
-              <Phone size={17} strokeWidth={2.4} /> Call
-            </button>
-          </div>
-
         </div>
       </div>
     </div>
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Edit modal                                                         */
-/* ------------------------------------------------------------------ */
 function LoginScreen({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -658,7 +498,7 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
       <div className="w-full max-w-xs bg-ink2 border border-hairline rounded-2xl shadow-sm p-6">
         <div className="flex flex-col items-center mb-5">
           <div
@@ -808,14 +648,11 @@ function EditLeadModal({ lead, onClose, onSave, role, onDeleteRequest }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Add-lead modal (paste-and-extract, stand-in for inbox auto-read)   */
-/* ------------------------------------------------------------------ */
 function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
   const [fields, setFields] = useState({
     loanType: "", phone: "", email: "", name: "", jobTitle: "", location: "", netSalary: "", loanAmount: "", salaryThrough: "", remark: "",
   });
-  const [source, setSource] = useState("whatsapp"); // "website" -> New Lead, "whatsapp" -> Contacted
+  const [source, setSource] = useState("whatsapp");
 
   const defaultStatus = (() => {
     const findByName = (names) => statuses.find((s) => names.includes(s.name.trim().toLowerCase()));
@@ -930,9 +767,6 @@ function AddLeadModal({ website, onClose, onAdd, currentAgentId, statuses }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Legacy tab                                                         */
-/* ------------------------------------------------------------------ */
 function LegacyNoteCard({ note, onUpdate }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(note.text);
@@ -1044,9 +878,6 @@ function LegacyTab({ notes, onAdd, onUpdate, query, role, currentAgentId }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Settings tab                                                       */
-/* ------------------------------------------------------------------ */
 function AgentPasswordField({ agent, onSet }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -1267,8 +1098,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
   const [expandedStatusId, setExpandedStatusId] = useState(null);
   const [newSubOption, setNewSubOption] = useState("");
 
-  // Draft copies — edits only touch these. Nothing is applied for real
-  // (or persisted) until the matching Save button is pressed.
   const [dWebsites, setDWebsites] = useState(websites);
   const [dStatuses, setDStatuses] = useState(statuses);
   const [dAgents, setDAgents] = useState(agents);
@@ -1280,9 +1109,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
   const statusesDirty = JSON.stringify(dStatuses) !== JSON.stringify(statuses);
   const agentsDirty = JSON.stringify(dAgents) !== JSON.stringify(agents);
 
-  // Diffs a draft array against the live one and issues the matching
-  // POST (new rows) / PATCH (changed rows) / DELETE (removed rows) calls,
-  // then updates the real state once everything's confirmed saved.
   const syncList = async (endpoint, draft, original, setLive, label) => {
     try {
       const originalById = Object.fromEntries(original.map((x) => [x.id, x]));
@@ -1437,7 +1263,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
 
       <NotificationSettings />
 
-      {/* Websites */}
       <section>
         <SectionHeader
           icon={Building2}
@@ -1499,7 +1324,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
         <SaveBtn dirty={websitesDirty} onSave={() => syncList("/websites", dWebsites, websites, setWebsites, "Websites")} />
       </section>
 
-      {/* Statuses / droplist */}
       <section>
         <SectionHeader icon={Tag} title="Status droplist" desc="Shown on every lead card and the dashboard tiles, in this order. Tap the inbox icon to choose which status new incoming leads get automatically." />
         <div className="bg-ink2 border border-hairline rounded-2xl shadow-sm overflow-hidden">
@@ -1609,7 +1433,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
         <SaveBtn dirty={statusesDirty} onSave={() => syncList("/statuses", dStatuses, statuses, setStatuses, "Status droplist")} />
       </section>
 
-      {/* Agents */}
       <section>
         <SectionHeader
           icon={Users}
@@ -1682,9 +1505,6 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
   );
 }
 
-/* ------------------------------------------------------------------ */
-/*  Main App                                                           */
-/* ------------------------------------------------------------------ */
 export default function App() {
   const [loaded, setLoaded] = useState(false);
   const [websites, setWebsites] = useState([]);
@@ -1706,16 +1526,10 @@ export default function App() {
   const currentAgentIdRef = useRef(currentAgentId);
   useEffect(() => { currentAgentIdRef.current = currentAgentId; }, [currentAgentId]);
   const notifiedNudgesRef = useRef(new Set());
-  // Login can't actually work inside Claude's artifact preview (no real
-  // network access to the backend), so it's auto-bypassed there. On the
-  // real deployed site (your Vercel domain), login stays fully required.
   const isProductionSite = typeof window !== "undefined" && window.location.hostname.endsWith("vercel.app");
   const DISABLE_LOGIN = !isProductionSite;
   const [loggedIn, setLoggedIn] = useState(DISABLE_LOGIN || !!savedSession);
 
-  // Clear the home-screen icon badge whenever the app is actually being
-  // looked at — on open, and whenever it comes back into the foreground
-  // after being backgrounded.
   useEffect(() => {
     clearAppBadge();
     const onVisible = () => { if (document.visibilityState === "visible") clearAppBadge(); };
@@ -1727,24 +1541,23 @@ export default function App() {
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(null);
   const [viaDashboardTile, setViaDashboardTile] = useState(false);
-  const [pendingEdits, setPendingEdits] = useState({}); // { [leadId]: { field: value, ... } }
+  const [pendingEdits, setPendingEdits] = useState({});
   const [agentFilter, setAgentFilter] = useState(null);
   const [dateFilter, setDateFilter] = useState(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [editingLead, setEditingLead] = useState(null);
   const [addingWebsite, setAddingWebsite] = useState(null);
-  const [collapsedSections, setCollapsedSections] = useState({}); // keyed "dateKey|websiteId" — absent = expanded (default)
+  const [collapsedSections, setCollapsedSections] = useState({});
   const [deletingLead, setDeletingLead] = useState(null);
   const [toast, setToast] = useState(null);
 
   const notify = (msg) => setToast(msg);
 
-  /* data loading — happens once logged in, from the real backend */
-  const [dataStatus, setDataStatus] = useState("idle"); // idle | loading | ready | error
+  const [dataStatus, setDataStatus] = useState("idle");
   const [dataError, setDataError] = useState("");
 
   useEffect(() => {
-    setLoaded(true); // nothing to wait on before showing the login screen
+    setLoaded(true);
   }, []);
 
   const CACHE_KEY = "leadledger_cache";
@@ -1773,9 +1586,6 @@ export default function App() {
       setLeads(camelLds);
       setLegacyNotes(camelNotes);
       setDataStatus("ready");
-      // Cache so the NEXT time this device opens the app, it can show this
-      // data instantly instead of showing a loading screen while it waits
-      // on the server again.
       try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({
           websites: camelWs, statuses: camelSts, agents: camelAgs, leads: camelLds, legacyNotes: camelNotes,
@@ -1786,16 +1596,11 @@ export default function App() {
         setDataStatus("error");
         setDataError(e.message || "Couldn't reach the server");
       }
-      // If this was a silent background refresh, just leave whatever's
-      // already on screen (cached or previously loaded) — no error shown.
     }
   };
 
   useEffect(() => {
     if (!loggedIn) return;
-    // Show cached data instantly if we have it from last time, then quietly
-    // refresh in the background — so the app never sits on a loading screen
-    // just because the server is slow to respond.
     try {
       const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
       if (cached) {
@@ -1805,17 +1610,13 @@ export default function App() {
         setLeads(cached.leads || []);
         setLegacyNotes(cached.legacyNotes || []);
         setDataStatus("ready");
-        loadAllData(true); // silent refresh
+        loadAllData(true);
         return;
       }
     } catch { /* corrupted cache — fall through to a normal load */ }
     loadAllData();
   }, [loggedIn]);
 
-  // Instantly reflects new/updated/deleted leads the moment they happen in
-  // the database — whether from an email coming in, another agent's edit,
-  // or your own action on a different device. Uses Supabase's built-in
-  // Realtime (a live websocket connection), not polling.
   useEffect(() => {
     if (!loggedIn || dataStatus !== "ready") return;
 
@@ -1833,11 +1634,6 @@ export default function App() {
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "leads" }, (payload) => {
         setLeads((prev) => prev.map((l) => (l.id === payload.new.id ? toCamel(payload.new) : l)));
 
-        // Was this update a nudge aimed at ME specifically? Rather than
-        // diffing old vs new (Postgres doesn't send the full old row by
-        // default), treat any nudge timestamp from the last 10 seconds as
-        // "just happened" — old enough to ignore stale data, fresh enough
-        // to be this exact nudge.
         const nudgedAt = payload.new.nudged_at;
         if (
           nudgedAt &&
@@ -1850,9 +1646,6 @@ export default function App() {
             const site = websitesRef.current.find((w) => w.id === payload.new.website_id);
             const settings = getNotifSettings();
             if (settings.enabled) {
-              // Play the alert sound 3 times in quick succession so a single
-              // nudge already feels urgent, instead of needing the sender
-              // to spam-click it manually.
               playNotificationSound(settings.sound);
               setTimeout(() => playNotificationSound(settings.sound), 450);
               setTimeout(() => playNotificationSound(settings.sound), 900);
@@ -1878,11 +1671,6 @@ export default function App() {
         setLeads((prev) => prev.filter((l) => l.id !== payload.old.id));
       })
       .subscribe((status, err) => {
-        // Temporary debug logging — check the browser console for this.
-        // SUBSCRIBED = working correctly.
-        // CHANNEL_ERROR = usually means Realtime isn't enabled on the table,
-        //   or the anon key / URL is wrong.
-        // TIMED_OUT / CLOSED = a network or connection issue.
         console.log("[Realtime] status:", status, err || "");
       });
 
@@ -1900,7 +1688,6 @@ export default function App() {
     () => new Set(websites.filter(isWebsiteVisible).map((w) => w.id)),
     [websites, role, currentAgentId]
   );
-  const activeWebsites = websites.filter((w) => w.active && isWebsiteVisible(w));
 
   const isLeadVisible = (l) =>
     visibleWebsiteIds.has(l.websiteId) && (role === "admin" || l.assignedAgentId === currentAgentId);
@@ -1944,8 +1731,6 @@ export default function App() {
       map[l.dateKey] = map[l.dateKey] || [];
       map[l.dateKey].push(l);
     });
-    // Keep today's group visible (with website shortforms + add buttons ready)
-    // even before the first lead of the day comes in.
     if (!query.trim() && !statusFilter && !agentFilter && !dateFilter && !map[todayKey()]) {
       map[todayKey()] = [];
     }
@@ -1966,7 +1751,7 @@ export default function App() {
 
   const addLead = async (lead) => {
     try {
-      const { id, ...rest } = lead; // let Supabase generate the real id
+      const { id, ...rest } = lead;
       const row = await api("/leads", { method: "POST", body: toSnake(rest) });
       setLeads([toCamel(row), ...leads]);
       setAddingWebsite(null);
@@ -1989,11 +1774,11 @@ export default function App() {
 
   const patchLead = async (id, fields) => {
     const prev = leads;
-    setLeads(leads.map((l) => (l.id === id ? { ...l, ...fields } : l))); // optimistic
+    setLeads(leads.map((l) => (l.id === id ? { ...l, ...fields } : l)));
     try {
       await api(`/leads/${id}`, { method: "PATCH", body: toSnake(fields) });
     } catch (e) {
-      setLeads(prev); // roll back on failure
+      setLeads(prev);
       notify(`Couldn't save change: ${e.message}`);
     }
   };
@@ -2040,7 +1825,7 @@ export default function App() {
 
   if (dataStatus === "loading" || dataStatus === "idle") {
     return (
-      <div className="min-h-screen bg-ink flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      <div className="min-h-screen bg-ink flex flex-col items-center justify-center gap-3" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
         <Loader2 className="animate-spin text-brass" size={28} />
         <p className="text-dim text-sm">Loading your data…</p>
       </div>
@@ -2049,7 +1834,7 @@ export default function App() {
 
   if (dataStatus === "error") {
     return (
-      <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      <div className="min-h-screen bg-ink flex items-center justify-center p-4" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
         <div className="w-full max-w-sm bg-ink2 border border-hairline rounded-2xl shadow-sm p-6 text-center">
           <div className="w-12 h-12 rounded-full bg-rust/15 flex items-center justify-center mx-auto mb-3">
             <X size={22} className="text-rust" />
@@ -2067,9 +1852,9 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-ink" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <div className="min-h-screen bg-ink" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Poppins:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
         select option { background: #FFFFFF; color: #1F2530; }
         select {
           -webkit-tap-highlight-color: transparent;
@@ -2078,9 +1863,6 @@ export default function App() {
         }
         select:focus, select:active { outline: none; }
 
-        /* Semantic color classes — written as plain CSS instead of Tailwind
-           arbitrary-value utilities, since this renderer doesn't compile
-           bg-[#hex] / text-[#hex] on the fly. Bold, saturated accent theme. */
         .bg-ink { background-color: #F3F1FC; }
         .bg-ink2 { background-color: #FFFFFF; }
         .bg-ink3 { background-color: #F7F6FE; }
@@ -2091,9 +1873,6 @@ export default function App() {
         .bg-sage { background-color: #059669; }
         .bg-rust { background-color: #DC2626; }
 
-        /* Real tonal hierarchy instead of everything mapping to pure black —
-           this is what makes a busy list of cards feel calm and scannable
-           rather than shouty. */
         .text-cream { color: #221E36; }
         .text-dim { color: #5F5B80; }
         .text-faint { color: #9692B8; }
@@ -2128,8 +1907,6 @@ export default function App() {
         .focus-border-brass:focus { border-color: #4F46E5; outline: none; }
         .focus-ring-brass:focus { box-shadow: 0 0 0 3px rgba(79,70,229,0.35); }
 
-        /* Bold "candy" action buttons — saturated fill with a chunky
-           hard-edge bottom shadow that flattens when pressed. */
         .btn3d {
           border: none;
           transition: transform .09s ease, box-shadow .09s ease;
@@ -2152,7 +1929,6 @@ export default function App() {
         .btn3d-danger { background: #FCA5A5; box-shadow: 0 3px 0 #DC2626, inset 0 1px 1px rgba(255,255,255,0.85); }
         .btn3d-danger:active:not(:disabled) { box-shadow: 0 0 0 #DC2626, inset 0 1px 1px rgba(255,255,255,0.85); }
 
-        /* Loading shimmer sweep + pulsing glow for the "New" status pill */
         .status-shimmer-bar {
           position: absolute;
           top: 0; left: -80%;
@@ -2174,17 +1950,16 @@ export default function App() {
         }
       `}</style>
 
-      {/* Header — single compact row */}
-      <header className="sticky top-0 z-30" style={{ background: "linear-gradient(135deg, #7C3AED, #6D28D9)", boxShadow: "0 2px 10px rgba(109,40,217,0.25)" }}>
+      <header className="sticky top-0 z-30 bg-ink-95 backdrop-blur border-b border-hairline2">
         <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center gap-3">
           <button onClick={() => { setTab("leads"); setStatusFilter(null); setAgentFilter(null); setDateFilter(null); setViaDashboardTile(false); setPendingEdits({}); }} className="flex items-center gap-2 shrink-0 active:opacity-70 transition-opacity">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "rgba(255,255,255,0.18)" }}
+              style={{ background: "linear-gradient(155deg, #A855F7, #7C3AED)", boxShadow: "0 2px 5px rgba(124,58,237,0.4)" }}
             >
               <NotebookText size={20} className="text-white" strokeWidth={2.3} />
             </div>
-            <h1 className="text-white font-semibold text-[15px] hidden md:block" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            <h1 className="text-cream font-semibold text-[15px] hidden md:block" style={{ fontFamily: "'Times New Roman', Times, serif" }}>
               Lead
             </h1>
           </button>
@@ -2195,10 +1970,10 @@ export default function App() {
             <button
               onClick={() => setFilterOpen((o) => !o)}
               title="Filter leads"
-              className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${(statusFilter || agentFilter || dateFilter) ? "border-white bg-white text-brass" : "border-white/40 bg-white/10 text-white"}`}
+              className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${(statusFilter || agentFilter || dateFilter) ? "border-brass bg-brass-15 text-brass" : "border-hairline bg-ink2 text-dim"}`}
             >
               <Filter size={14} strokeWidth={2.3} />
-              {(statusFilter || agentFilter || dateFilter) && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-white" style={{ boxShadow: "0 0 0 1.5px #7C3AED" }} />}
+              {(statusFilter || agentFilter || dateFilter) && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-brass" />}
             </button>
             {filterOpen && (
               <div className="absolute left-0 mt-1.5 z-30 bg-ink2 border border-hairline rounded-xl shadow-lg py-1 min-w-[170px] max-h-[70vh] overflow-y-auto">
@@ -2271,17 +2046,16 @@ export default function App() {
           </div>
 
           <div className="relative w-28 sm:w-40 shrink-0">
-            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/70" />
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-faint" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search…"
-              className="w-full border border-white/30 rounded-full pl-7 pr-2 py-1.5 text-[12px] text-white placeholder-white/60 focus:outline-none"
-              style={{ background: "rgba(255,255,255,0.15)" }}
+              className="w-full bg-ink2 border border-hairline rounded-full pl-7 pr-2 py-1.5 text-[12px] text-cream placeholder-faint focus:outline-none focus-border-brass"
             />
           </div>
 
-          <nav className="flex rounded-full p-0.5 shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+          <nav className="flex bg-ink2 border border-hairline rounded-full p-0.5 shrink-0">
             {[
               { id: "leads", label: "Leads", icon: Home },
               { id: "legacy", label: "Legacy", icon: ClipboardPaste },
@@ -2294,7 +2068,7 @@ export default function App() {
                   if (t.id === "leads") { setStatusFilter(null); setAgentFilter(null); setDateFilter(null); setViaDashboardTile(false); setPendingEdits({}); }
                 }}
                 title={t.label}
-                className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-full transition-colors ${tab === t.id ? "bg-white text-brass font-medium" : "text-white/80"}`}
+                className={`flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-full transition-colors ${tab === t.id ? "bg-brass text-ink font-medium" : "text-dim hover-cream"}`}
               >
                 <t.icon size={13} /> <span className="hidden lg:inline">{t.label}</span>
               </button>
@@ -2304,7 +2078,6 @@ export default function App() {
       </header>
 
       <main className="max-w-5xl mx-auto px-4 pb-6" style={{ paddingTop: "6px" }}>
-        {/* Combined search results, shown regardless of tab when searching */}
         {query.trim() && tab === "leads" && filteredLegacy.length > 0 && (
           <div className="mb-6 bg-ink2 border border-brass-30 rounded-xl p-4">
             <div className="text-[11px] uppercase tracking-wide text-brass mb-2 flex items-center gap-1.5">
@@ -2328,42 +2101,43 @@ export default function App() {
 
         {tab === "leads" && (
           <>
-            <div className="bg-ink2 border border-hairline rounded-2xl p-3.5 shadow-sm" style={{ marginBottom: "10px" }}>
-              <div className="flex items-center justify-between mb-2.5 px-0.5">
-                <span className="flex items-center gap-1.5 text-[12px] font-bold text-cream">
-                  <Calendar size={13} className="text-brass" /> Today's Leads
-                </span>
+            <div className="bg-ink2 border border-hairline rounded-xl p-2 shadow-sm" style={{ marginBottom: "10px" }}>
+              <div className="flex items-center justify-between mb-1.5 px-0.5">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-faint">Status overview</span>
                 {statusFilter && (
-                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full border border-hairline">
+                  <button onClick={() => { setStatusFilter(null); setViaDashboardTile(false); }} className="btn3d btn3d-default text-dim text-[10px] font-semibold px-2.5 py-1 rounded-full">
                     Back
                   </button>
                 )}
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-1.5">
                 {statusCounts.filter((s) => {
                   const n = s.name.trim().toLowerCase();
                   return n === "new lead" || n === "new" || n === "contacted" || n === "appointment";
                 }).map((s) => {
                   const active = statusFilter === s.id;
-                  const n = s.name.trim().toLowerCase();
-                  const TileIcon = n === "contacted" ? Users : (n === "appointment" ? Calendar : Plus);
+                  const txt = contrastText(s.color);
                   return (
                     <button
                       key={s.id}
                       onClick={() => { setStatusFilter(active ? null : s.id); setViaDashboardTile(!active); }}
-                      className="relative flex flex-col items-center justify-center gap-1 py-3 rounded-xl transition-all active:scale-95"
+                      className="relative h-14 rounded-xl flex flex-col items-center justify-center gap-0 transition-transform duration-150 active:scale-95"
                       style={{
-                        background: s.color + "1A",
-                        boxShadow: active ? `0 0 0 2px ${s.color}` : "none",
+                        backgroundImage: `linear-gradient(165deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(${s.color}, ${s.color})`,
+                        boxShadow: active
+                          ? `0 0 0 2px #FFFFFF, 0 0 0 4px ${s.color}, 0 3px 0 ${darkenHex(s.color, 0.3)}`
+                          : `0 3px 0 ${darkenHex(s.color, 0.3)}`,
                       }}
                     >
-                      <span className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: s.color + "30" }}>
-                        <TileIcon size={14} style={{ color: s.color }} strokeWidth={2.4} />
-                      </span>
-                      <span className="text-[19px] font-extrabold leading-none" style={{ color: s.color }}>
+                      {active && (
+                        <span className="absolute top-0.5 right-0.5 w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center shadow">
+                          <Check size={7} strokeWidth={3.5} style={{ color: s.color }} />
+                        </span>
+                      )}
+                      <span className="text-[20px] font-extrabold leading-none tracking-tight" style={{ color: txt, textShadow: txt === "#FFFFFF" ? "0 1px 2px rgba(0,0,0,0.2)" : "none" }}>
                         {s.count}
                       </span>
-                      <span className="text-[9.5px] font-semibold text-center px-1 leading-none text-dim">
+                      <span className="text-[9px] font-bold uppercase tracking-wide text-center px-1 leading-none" style={{ color: txt, opacity: 0.9 }}>
                         {s.name}
                       </span>
                     </button>
