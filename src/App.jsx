@@ -122,6 +122,51 @@ function clearAppBadge() {
   }
 }
 
+// Same public key as the backend's VAPID_PUBLIC_KEY — safe to expose in
+// the browser (that's the whole point of the public half of the pair).
+const VAPID_PUBLIC_KEY = "BKIyzyeIG6OmcWZyb9t0VDptfntG_G3E2Yz1gv15j32VqL_LVl1r4nyqHgSdT6R_LJDXmT3wBdJcfFquIYaE2dw";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+// Subscribes this device to real push notifications and tells the backend
+// which agent it belongs to. Safe to call repeatedly — browsers return the
+// existing subscription if one's already active.
+async function subscribeToPush(agentId) {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    let subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+    }
+    await api("/push-subscribe", { method: "POST", body: { agentId, subscription: subscription.toJSON() } });
+  } catch (e) {
+    console.error("Push subscription failed:", e.message);
+  }
+}
+
+async function unsubscribeFromPush() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (subscription) {
+      await api("/push-unsubscribe", { method: "POST", body: { endpoint: subscription.endpoint } });
+      await subscription.unsubscribe();
+    }
+  } catch (e) {
+    console.error("Push unsubscribe failed:", e.message);
+  }
+}
+
 function nowInMalaysia() {
   return new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kuala_Lumpur" }));
 }
@@ -197,6 +242,22 @@ function initials(name) {
 function shortAgentName(name) {
   return (name || "").replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
+
+// WhatsApp needs a full international number to find a chat — a local
+// Malaysian number like "012-345 6789" or "0123456789" fails with "could
+// not look up phone number" because it's missing the country code. This
+// strips formatting and adds it when needed.
+function normalizeWhatsAppPhone(phone) {
+  let digits = (phone || "").replace(/[^\d]/g, "");
+  if (!digits) return "";
+  if (digits.startsWith("0")) {
+    digits = "60" + digits.slice(1); // local format -> Malaysia country code
+  } else if (!digits.startsWith("60")) {
+    digits = "60" + digits; // no country code at all -> assume Malaysia
+  }
+  return digits;
+}
+
 function phoneSizeCls(phone) {
   const len = (phone || "").length;
   if (len > 34) return "text-[10.5px]";
@@ -264,7 +325,7 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
   };
 
   const call = () => window.open(`tel:${lead.phone.replace(/[^\d+]/g, "")}`, "_self");
-  const chat = () => { window.location.href = `whatsapp://send?phone=${lead.phone.replace(/[^\d]/g, "")}`; };
+  const chat = () => { window.location.href = `whatsapp://send?phone=${normalizeWhatsAppPhone(lead.phone)}`; };
   const copy = (val, label) => {
     navigator.clipboard?.writeText(val);
     notify(`${label} copied`);
@@ -338,14 +399,39 @@ function LeadCard({ lead, index, website, statuses, agents, role, currentAgentId
                 </select>
               </div>
               {lead.assignedAgentId && lead.assignedAgentId !== currentAgentId && (
-                <button
-                  onClick={() => onNudge(lead.id, agents.find((a) => a.id === lead.assignedAgentId)?.name)}
-                  className="flex items-center gap-1 text-[10px] font-semibold text-amber px-2.5 py-1 rounded-full hover:brightness-95 transition-all active:scale-95"
-                  style={{ background: "rgba(217,119,6,0.12)" }}
-                  title="Remind this agent to respond"
-                >
-                  <Sparkles size={10} /> Nudge
-                </button>
+                <div className="flex flex-col items-end gap-1">
+                  <button
+                    onClick={() => onNudge(lead.id, agents.find((a) => a.id === lead.assignedAgentId)?.name)}
+                    className="btn3d btn3d-nudge flex items-center gap-1 text-[11px] font-bold text-white px-3 py-1.5 rounded-full"
+                    title="Remind this agent to respond — tap as many times as you like"
+                  >
+                    <Sparkles size={11} /> Nudge
+                  </button>
+                  {(() => {
+                    const assignedAgent = agents.find((a) => a.id === lead.assignedAgentId);
+                    if (!assignedAgent?.phone) return null;
+                    return (
+                      <button
+                        onClick={() => {
+                          const summary = [
+                            `Phone: ${lead.phone || "—"}`,
+                            `Loan type: ${lead.loanType || "—"}`,
+                            `Job title: ${lead.jobTitle || "—"}`,
+                            `Location: ${lead.location || "—"}`,
+                            `Net salary: ${fmtNum(lead.netSalary)}`,
+                            `Loan amount: ${fmtNum(lead.loanAmount)}`,
+                            `From: ${website?.name || "—"}`,
+                          ].join("\n");
+                          window.location.href = `whatsapp://send?phone=${normalizeWhatsAppPhone(assignedAgent.phone)}&text=${encodeURIComponent(summary)}`;
+                        }}
+                        className="btn3d btn3d-chat flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                        title={`Send this lead's details to ${shortAgentName(assignedAgent.name)} on WhatsApp`}
+                      >
+                        <MessageCircle size={10} /> Send details
+                      </button>
+                    );
+                  })()}
+                </div>
               )}
               {lead.nudgedAt && Date.now() - new Date(lead.nudgedAt).getTime() < 15 * 60 * 1000 && (
                 <span className="text-[9px] text-faint italic">Nudged {Math.max(1, Math.round((Date.now() - new Date(lead.nudgedAt).getTime()) / 60000))}m ago</span>
@@ -1009,7 +1095,7 @@ function AddRow({ children, onAdd, disabled }) {
   );
 }
 
-function NotificationSettings({ role }) {
+function NotificationSettings({ role, currentAgentId }) {
   const isAgent = role !== "admin";
   const [settings, setSettings] = useState(() => {
     const s = getNotifSettings();
@@ -1032,6 +1118,17 @@ function NotificationSettings({ role }) {
       save({ ...getNotifSettings(), enabled: true });
     }
   }, []);
+
+  // Keep the real push subscription in sync with the on/off setting —
+  // this is what makes notifications arrive even with the phone locked or
+  // the app fully closed, not just while the tab is open.
+  useEffect(() => {
+    if (settings.enabled && permission === "granted") {
+      subscribeToPush(currentAgentId);
+    } else if (!settings.enabled) {
+      unsubscribeFromPush();
+    }
+  }, [settings.enabled, permission, currentAgentId]);
 
   const toggleEnabled = async () => {
     if (isAgent) return; // locked — admin requirement
@@ -1221,7 +1318,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
       <div className="max-w-md mx-auto py-6">
         {RoleToggle}
         <div className="mb-6">
-          <NotificationSettings role={role} />
+          <NotificationSettings role={role} currentAgentId={currentAgentId} />
         </div>
         <section>
           <SectionHeader
@@ -1295,7 +1392,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
     <div className="max-w-2xl mx-auto space-y-7">
       {RoleToggle}
 
-      <NotificationSettings role={role} />
+      <NotificationSettings role={role} currentAgentId={currentAgentId} />
 
       <section>
         <SectionHeader
@@ -1519,6 +1616,15 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
                     onSet={(pw) => setDAgents(dAgents.map((x) => x.id === a.id ? { ...x, password: pw } : x))}
                   />
                 </div>
+                <div className="flex items-center gap-1.5 mt-1">
+                  <Phone size={10} className="text-faint shrink-0" />
+                  <input
+                    placeholder="Phone (for WhatsApp)"
+                    className="text-[11px] font-mono text-dim bg-transparent focus:outline-none focus-border-brass border-b border-transparent hover:border-hairline flex-1 min-w-[90px]"
+                    value={a.phone || ""}
+                    onChange={(e) => setDAgents(dAgents.map((x) => x.id === a.id ? { ...x, phone: e.target.value } : x))}
+                  />
+                </div>
               </div>
               {a.role !== "admin" && (
                 <div className="flex items-center gap-2.5 shrink-0">
@@ -1590,6 +1696,14 @@ export default function App() {
     const onVisible = () => { if (document.visibilityState === "visible") clearAppBadge(); };
     document.addEventListener("visibilitychange", onVisible);
     return () => document.removeEventListener("visibilitychange", onVisible);
+  }, []);
+
+  // Registers the service worker that lets push notifications show up
+  // even when this app tab is closed or the phone is locked.
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((e) => console.error("Service worker registration failed:", e.message));
+    }
   }, []);
 
   const [tab, setTab] = useState("leads");
@@ -1983,6 +2097,9 @@ export default function App() {
 
         .btn3d-danger { background: #FCA5A5; box-shadow: 0 3px 0 #DC2626, inset 0 1px 1px rgba(255,255,255,0.85); }
         .btn3d-danger:active:not(:disabled) { box-shadow: 0 0 0 #DC2626, inset 0 1px 1px rgba(255,255,255,0.85); }
+
+        .btn3d-nudge { background: #FCD34D; box-shadow: 0 3px 0 #D97706, inset 0 1px 1px rgba(255,255,255,0.85); }
+        .btn3d-nudge:active:not(:disabled) { box-shadow: 0 0 0 #D97706, inset 0 1px 1px rgba(255,255,255,0.85); }
 
         .status-shimmer-bar {
           position: absolute;
