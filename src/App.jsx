@@ -1363,64 +1363,66 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
         <div className="bg-ink2 border border-hairline rounded-2xl shadow-sm overflow-hidden">
           {dStatuses.map((s, si) => (
             <div key={s.id} className={si > 0 ? "border-t border-hairline" : ""}>
-              <div className="flex items-center gap-3 px-3.5 py-3">
-                <ReorderBtns list={dStatuses} setList={setDStatuses} index={si} />
-                <ColorSwatch color={s.color} onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, color: e.target.value } : x))} />
-                <input
-                  className="bg-transparent text-[13px] font-medium text-cream flex-1 min-w-[70px] focus:outline-none"
-                  value={s.name}
-                  onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, name: e.target.value } : x))}
-                />
-                <button
-                  onClick={() => { setExpandedStatusId(expandedStatusId === s.id ? null : s.id); setNewSubOption(""); }}
-                  title="Reason sub-options"
-                  className={`flex items-center gap-0.5 text-[10px] px-1.5 py-1 rounded-md shrink-0 ${(s.subOptions || []).length ? "text-brass" : "text-faint"}`}
-                >
-                  <Tag size={12} />
-                  {(s.subOptions || []).length > 0 && <span>{s.subOptions.length}</span>}
-                  {expandedStatusId === s.id ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                </button>
-                <button
-                  onClick={() => setDStatuses(dStatuses.map((x) => ({ ...x, isDefault: x.id === s.id })))}
-                  title={s.isDefault ? "Default for incoming leads" : "Set as default for incoming leads"}
-                  className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 ${s.isDefault ? "bg-brass-15 text-brass" : "text-faint"}`}
-                >
-                  <Inbox size={13} fill={s.isDefault ? "currentColor" : "none"} fillOpacity={s.isDefault ? 0.15 : 0} />
-                </button>
-                <select
-                  value={s.dashboardOrder || ""}
-                  onChange={(e) => {
-                    const pos = e.target.value ? Number(e.target.value) : null;
-                    setDStatuses(dStatuses.map((x) => {
-                      if (x.id === s.id) return { ...x, dashboardOrder: pos };
-                      if (pos && x.dashboardOrder === pos) return { ...x, dashboardOrder: null }; // bump whoever had this spot
-                      return x;
-                    }));
-                  }}
-                  title="Position on dashboard"
-                  style={{ width: 56, maxWidth: 56 }}
-                  className={`text-[10px] font-semibold rounded-md px-1 py-1 border shrink-0 cursor-pointer truncate ${s.dashboardOrder ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
-                >
-                  <option value="">Off</option>
-                  <option value="1">1st</option>
-                  <option value="2">2nd</option>
-                  <option value="3">3rd</option>
-                </select>
-                <button
-                  onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
-                  title={s.animated ? "Animation on" : "Animation off"}
-                  className="relative w-9 h-5.5 rounded-full shrink-0 transition-colors duration-200"
-                  style={{ background: s.animated ? "#34C759" : "#D1D5DB", width: 36, height: 22 }}
-                >
-                  <span
-                    className="absolute top-0.5 left-0.5 rounded-full bg-white shadow transition-transform duration-200"
-                    style={{ width: 18, height: 18, transform: s.animated ? "translateX(14px)" : "translateX(0)" }}
+              <div className="px-3.5 py-3">
+                {/* Line 1 — reorder, color, name, delete */}
+                <div className="flex items-center gap-3">
+                  <ReorderBtns list={dStatuses} setList={setDStatuses} index={si} />
+                  <ColorSwatch color={s.color} onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, color: e.target.value } : x))} />
+                  <input
+                    className="bg-transparent text-[14px] font-medium text-cream flex-1 min-w-[90px] focus:outline-none"
+                    value={s.name}
+                    onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, name: e.target.value } : x))}
                   />
-                </button>
-                <Sparkles size={13} className={s.animated ? "text-brass" : "text-faint"} />
-                <button onClick={() => setDStatuses(dStatuses.filter((x) => x.id !== s.id))} className="text-faint hover-rust shrink-0">
-                  <Trash2 size={14} />
-                </button>
+                  <button onClick={() => setDStatuses(dStatuses.filter((x) => x.id !== s.id))} className="text-faint hover-rust shrink-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+
+                {/* Line 2 — labeled settings, wraps freely on narrow screens */}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2 pl-8">
+                  <button
+                    onClick={() => { setExpandedStatusId(expandedStatusId === s.id ? null : s.id); setNewSubOption(""); }}
+                    className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border ${(s.subOptions || []).length ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
+                  >
+                    <Tag size={11} /> Reasons{(s.subOptions || []).length > 0 ? ` (${s.subOptions.length})` : ""}
+                    {expandedStatusId === s.id ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                  </button>
+
+                  <button
+                    onClick={() => setDStatuses(dStatuses.map((x) => ({ ...x, isDefault: x.id === s.id })))}
+                    className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border ${s.isDefault ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
+                  >
+                    <Inbox size={11} /> Default for new leads
+                  </button>
+
+                  <label className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border ${s.dashboardOrder ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}>
+                    Dashboard:
+                    <select
+                      value={s.dashboardOrder || ""}
+                      onChange={(e) => {
+                        const pos = e.target.value ? Number(e.target.value) : null;
+                        setDStatuses(dStatuses.map((x) => {
+                          if (x.id === s.id) return { ...x, dashboardOrder: pos };
+                          if (pos && x.dashboardOrder === pos) return { ...x, dashboardOrder: null }; // bump whoever had this spot
+                          return x;
+                        }));
+                      }}
+                      className="bg-transparent focus:outline-none cursor-pointer font-semibold"
+                    >
+                      <option value="">Off</option>
+                      <option value="1">1st</option>
+                      <option value="2">2nd</option>
+                      <option value="3">3rd</option>
+                    </select>
+                  </label>
+
+                  <button
+                    onClick={() => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, animated: !x.animated } : x))}
+                    className={`flex items-center gap-1 text-[11px] px-2 py-1 rounded-full border ${s.animated ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
+                  >
+                    <Sparkles size={11} /> Glow animation {s.animated ? "on" : "off"}
+                  </button>
+                </div>
               </div>
               {expandedStatusId === s.id && (
                 <div className="px-3.5 pb-3 pl-11">
