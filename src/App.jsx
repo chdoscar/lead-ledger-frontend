@@ -1367,7 +1367,7 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
                 <ReorderBtns list={dStatuses} setList={setDStatuses} index={si} />
                 <ColorSwatch color={s.color} onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, color: e.target.value } : x))} />
                 <input
-                  className="bg-transparent text-[13px] font-medium text-cream flex-1 min-w-0 focus:outline-none"
+                  className="bg-transparent text-[13px] font-medium text-cream flex-1 min-w-[70px] focus:outline-none"
                   value={s.name}
                   onChange={(e) => setDStatuses(dStatuses.map((x) => x.id === s.id ? { ...x, name: e.target.value } : x))}
                 />
@@ -1398,9 +1398,10 @@ function SettingsTab({ websites, setWebsites, statuses, setStatuses, agents, set
                     }));
                   }}
                   title="Position on dashboard"
-                  className={`text-[10px] font-semibold rounded-md px-1.5 py-1 border shrink-0 cursor-pointer ${s.dashboardOrder ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
+                  style={{ width: 56, maxWidth: 56 }}
+                  className={`text-[10px] font-semibold rounded-md px-1 py-1 border shrink-0 cursor-pointer truncate ${s.dashboardOrder ? "border-brass text-brass bg-brass-15" : "border-hairline text-faint"}`}
                 >
-                  <option value="">Dashboard: off</option>
+                  <option value="">Off</option>
                   <option value="1">1st</option>
                   <option value="2">2nd</option>
                   <option value="3">3rd</option>
